@@ -155,6 +155,86 @@ class Tokenizer():
         assert self.token_type() == "STRING_CONST", "called string_val() on token with type {}".format(self.token_type())
         return self.current_token.text
 
+class CompilationEngine():
+
+    def __init__(self, jack_file_path, output_file_path):
+        """ Creates a new compilation engine with the given input and output. The next routine called must be
+        compile_class """
+        self.jack_file_path = jack_file_path
+        self.output_file_path = output_file_path
+        pass
+
+    def compile_class(self):
+        """ Compiles a complete class """
+        pass
+
+    def compile_class_var_dec(self):
+        """ Compiles a static variable declaration, or a field declaration """
+        pass
+
+    def compile_subroutine_dec(self):
+        """ Compiles a complete method, function, or constructor """
+        pass
+
+    def compile_parameter_list(self):
+        """ Compiles a (possibly empty) parameter list. Does not handle the enclosing '()' """
+        pass
+
+    def compile_subroutine_body(self):
+        """ Compiles a subroutine's body """
+        pass
+
+    def compile_var_dec(self):
+        """ Compiles a 'var' declaration """
+        pass
+
+    def compile_statements(self):
+        """ Compiles a sequence of statements. Does not handle the enclosing '{}'
+
+        Hint: Uses a loop to handle zero or more statement instances, according to the left-most token.
+        If the left-most token is 'if', 'while'..., ...it invokes 'compile_if', 'compile_while', ....
+
+        Note: There is no compile_statement method
+        """
+        pass
+
+    def compile_let(self):
+        """ Compiles a 'let' statement """
+        pass
+
+    def compile_if(self):
+        """ Compiles an 'if' statement, possibly with a trailing 'else' clause """
+        pass
+
+    def compile_while(self):
+        """ Compiles a 'while' statement """
+        pass
+
+    def compile_do(self):
+        """ Compiles a 'do' statement """
+        pass
+
+    def compile_return(self):
+        """ Compiles a 'return' statement """
+        pass
+
+    def compile_expression(self):
+        """ Compiles an expression """
+        pass
+
+    def compile_term(self):
+        """ Compiles a term
+
+        If  the current token is a identifier, the routines must distinguish between a variable, an array entry, or a
+        subroutine call. A single lookahead token (which may be one of '[', '(', or '.') suffices to distinguish
+        between the possibilities. Any other token is not part of this term and should not be advanced over. """
+        pass
+
+    def compile_expressison_list(self):
+        """ Compiles a (possibly empty) comma-separated list of expressions """
+        pass
+
+
 
 class TokenizerTest(unittest.TestCase):
 
