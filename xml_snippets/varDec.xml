@@ -1,0 +1,41 @@
+<compilationUnitTests>
+	<test>
+		<test_name>testing single varDec</testName>
+		<jackSnippet>var int x;</jackSnippet>
+		<compilation>
+			<varDec>
+				<KEYWORD>var</KEYWORD>
+				<type>
+					<KEYWORD>int</KEYWORD>
+				</type>
+				<varName>
+					<IDENTIFIER>x</IDENTIFIER>
+				</varName>
+				<SYMBOL>;</SYMBOL>
+			</varDec>
+		</compilation>
+	</test>
+		<test_name>testing multiple varDec</testName>
+		<jackSnippet>var boolean x, y, z;</jackSnippet>
+		<compilation>
+			<varDec>
+				<KEYWORD>var</KEYWORD>
+				<type>
+					<KEYWORD>boolean</KEYWORD>
+				</type>
+				<varName>
+					<IDENTIFIER>x</IDENTIFIER>
+				</varName>
+				<SYMBOL>,</SYMBOL>
+				<varName>
+					<IDENTIFIER>y</IDENTIFIER>
+				</varName>
+				<SYMBOL>,</SYMBOL>
+				<varName>
+					<IDENTIFIER>z</IDENTIFIER>
+				</varName>
+				<SYMBOL>;</SYMBOL>
+			</varDec>
+		</compilation>	
+	<test>	
+</compilation_unit_tests>

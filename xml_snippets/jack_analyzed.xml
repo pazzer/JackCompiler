@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<class>
+    <KEYWORD>class</KEYWORD>
+    <className>
+        <IDENTIFIER>Main</IDENTIFIER>
+    </className>
+    <SYMBOL>{</SYMBOL>
+    <classVarDec>
+        <KEYWORD>field</KEYWORD>
+        <type>
+            <KEYWORD>int</KEYWORD>
+        </type>
+        <varName>
+            <IDENTIFIER>x</IDENTIFIER>
+        </varName>
+        <SYMBOL>,</SYMBOL>
+        <varName>
+            <IDENTIFIER>y</IDENTIFIER>
+        </varName>
+        <SYMBOL>,</SYMBOL>
+        <varName>
+            <IDENTIFIER>z</IDENTIFIER>
+        </varName>
+        <SYMBOL>;</SYMBOL>
+    </classVarDec>
+    <SYMBOL>}</SYMBOL>
+</class>

@@ -3,6 +3,8 @@ __author__ = 'paulpatterson'
 from xml.etree.ElementTree import Element, SubElement, Comment, tostring
 from xml.dom import minidom
 from pathlib import Path
+import sys
+import os
 from collections import namedtuple
 import re
 import unittest
@@ -157,12 +159,13 @@ class Tokenizer():
 
 class CompilationEngine():
 
-    def __init__(self, jack_file_path, output_file_path):
+    def __init__(self, jack_snippet=None, jack_file_path=None, output_file_path=None):
         """ Creates a new compilation engine with the given input and output. The next routine called must be
         compile_class """
+        self.jack_snippet = jack_snippet
         self.jack_file_path = jack_file_path
         self.output_file_path = output_file_path
-        pass
+
 
     def compile_class(self):
         """ Compiles a complete class """
@@ -235,6 +238,16 @@ class CompilationEngine():
         pass
 
 
+class JackAnalyzer():
+
+    def __init__(self, path=None, jack_snippet=None):
+        self._input = input
+        self.jack_file_paths = []
+        self.output_file_paths = []
+
+
+    def analyze(self):
+        pass
 
 class TokenizerTest(unittest.TestCase):
 
@@ -364,5 +377,11 @@ def prettify(elem):
     return reparsed.toprettyxml(indent="  ")
 
 if __name__ == "__main__":
-    unittest.main()
+    supplied_argument = sys.argv[1] # either a jack file, or a folder
+    cwd = os.getcwd()
+    argument_path = Path(os.path.join(cwd, supplied_argument))
+    print(argument_path.as_posix())
+
+
+    #unittest.main()
 

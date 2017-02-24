@@ -1,0 +1,817 @@
+#!/Library/Frameworks/Python.framework/Versions/3.4/bin/python3.4
+# -*- coding utf-8 -*-
+
+
+__author__ = 'paulpatterson'
+
+import logging as log
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
+from pathlib import Path
+import sys
+import os
+from collections import namedtuple
+import re
+import unittest
+
+JACK_ANALYZER_DIR = "/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/"
+
+KEYWORDS = ["class", "constructor", "function", "method", "field", "static", "var", "int", "char", "boolean",
+            "void", "true", "false", "null", "this", "let", "do", "if", "else", "while", "return"]
+RE_KEYWORD = re.compile("(?:\s*)(?P<keyword>{})".format("|".join(KEYWORDS)))
+
+RE_SYMBOL = re.compile("(?:\s*)(?P<symbol>\{|\}|\(|\)|\[|\]|\.|\,|\;|\+|\-|\*|\/|\&|\||\<|\>|\=|\~)")
+
+RE_INT_CONST = re.compile("(?:\s*)(?P<integerConstant>[0-9]+)")
+
+RE_IDENTIFIER = re.compile("(?:\s*)(?P<identifier>[a-zA-Z_][a-zA-Z0-9_]*)")
+
+RE_STRING_CONST = re.compile("(?:\s*)(?P<stringConstant>\"[^\"\n]+\")")
+
+Span = namedtuple("Span", "start end")
+JackMatch = namedtuple("JackMatch", "tag text span")
+
+
+class Tokenizer():
+
+    def __init__(self, jack_code=None, jack_filepath=None):
+        """ Opens the input file/stream and gets ready to tokenize it. """
+        if jack_filepath is not None:
+            with open(jack_filepath.as_posix(), 'r') as jack_file:
+                self.input = jack_file.read()
+        else:
+            self._input = jack_code
+        self.tokens = ET.Element("tokens")
+        self._pos = 0
+
+
+    def tokenize(self):
+        """ Tokenizes the entire input string in one go (useful for testing) """
+        next_token = self.advance()
+        while next_token is not None:
+            next_token = self.advance()
+
+        return self.tokens
+
+    def _lookahead(self):
+        def unpack_match(token_match):
+            span = Span(token_match.span()[0], token_match.span()[1])
+            group_names = list(token_match.groupdict().keys())
+            assert len(group_names) == 1, "Expected one named group, but got {} ({})".format(len(group_names), group_names)
+            tag = group_names[0]
+            text = token_match.groups(tag)[0]
+            return JackMatch(tag, text, span)
+
+        match_args = self._input, self._pos
+
+        keyword_match = RE_KEYWORD.match(*match_args)
+        if keyword_match:
+            return unpack_match(keyword_match)
+
+        symbol_match = RE_SYMBOL.match(*match_args)
+        if symbol_match:
+            jack_match = unpack_match(symbol_match)
+            if jack_match.text == "<":
+                return jack_match._replace(text="&lt;")
+            elif jack_match.text == ">":
+                return jack_match._replace(text="&gt;")
+            elif jack_match.text == '"':
+                return jack_match._replace("&quot;")
+            elif jack_match.text == "&":
+                return jack_match._replace("&amp;")
+            else:
+                return jack_match
+
+        identifier_match = RE_IDENTIFIER.match(*match_args)
+        if identifier_match:
+            return unpack_match(identifier_match)
+
+        int_match = RE_INT_CONST.match(*match_args)
+        if int_match:
+            return unpack_match(int_match)
+
+        string_match = RE_STRING_CONST.match(*match_args)
+        if string_match:
+            jack_match = unpack_match(string_match)
+            unquoted_string = jack_match.text.strip('"')
+            return jack_match._replace(text=unquoted_string)
+
+        if len(self._input[self._pos:].strip()) != 0:
+            print("warning! failed to match string beginning '{}'".format(self._input[self._pos:self._pos+10]))
+
+
+    @property
+    def current_token(self):
+        tokens = self.tokens.findall("*/.[last()]")
+        if len(tokens) > 0:
+            return tokens[-1]
+        else:
+            return None
+
+
+    def has_more_tokens(self):
+        """ Do we have more tokens in the input? """
+        return self._lookahead() is not None
+
+    def advance(self):
+        """ Gets the next token from the input and makes it the current token. This method
+        should only be called if hasMoreTokens() is true. Initially there is no current token. """
+        jack_match = self._lookahead()
+        if jack_match is not None:
+
+            token_element = ET.SubElement(self.tokens, jack_match.tag)
+            token_element.text = " {} ".format(jack_match.text)
+            self._pos += (jack_match.span.end - jack_match.span.start)
+            return token_element
+
+    def token_type(self):
+        """ Returns the type of the current token - one of keyword, symbol, identifer, integerConstant, stringConstant """
+        return self.current_token.tag
+
+    def keyword(self):
+        """ Returns the keyword which is the current token. Should be called only when tokenType() is keyword
+
+        Valid keywords: CLASS, METHOD, FUNCTION, CONSTRUCTOR, INT, BOOLEAN, CHAR, VOID, VAR, STATIC, FIELD, LET,
+        DO, IF, ELSE, WHILE, RETURN, TRUE, FALSE, NULL, THIS """
+        assert self.token_type() == "keyword", "called keyword() on token with type {}".format(self.token_type())
+        return self.current_token.text
+
+    def symbol(self):
+        """ Returns the character which is the current token. Should be called only when tokenType() is symbol
+
+        returns: Char """
+        assert self.token_type() == "symbol", "called symbol() on token with type {}".format(self.token_type())
+        return self.current_token.text
+
+    def identifier(self):
+        """Returns the identifier which is the current token. Should be called only when tokenType() is IDENTIFIER
+
+        returns: String """
+        assert self.token_type() == "identifier", "called identifier() on token with type {}".format(self.token_type())
+        return self.current_token.text
+
+    def int_val(self):
+        """ Returns the integer value of the current token. Should be called only when tokenType() is integerConstant
+
+        returns: Int """
+        assert self.token_type() == "integerConstant", "called int_val() on token with type {}".format(self.token_type())
+        return int(self.current_token.text)
+
+    def string_val(self):
+        """Returns the string value of the current token, without the double quotes. Should be called only when
+        tokenType() is stringConstant
+
+        returns: String """
+        assert self.token_type() == "stringConstant", "called string_val() on token with type {}".format(self.token_type())
+        return self.current_token.text
+
+    def __str__(self):
+        return "\n".join(["{}, {}".format(child.tag, child.text) for child in self.tokens])
+
+
+class CompilationEngine():
+
+    def __init__(self, tokenizer=None, output_file_path=None):
+        """ Creates a new compilation engine with the given input and output. The next routine called must be
+        compile_class """
+        self.tknzr = tokenizer
+        self.xml_tree = None
+        self.current_node = None
+        self.output_file_path = output_file_path
+
+    def compile(self):
+        self.tknzr.advance()
+        self.compile_class()
+        xml = stringify_xml(self.xml_tree)
+        with open(self.output_file_path.as_posix(), 'w') as outfile:
+            outfile.write(xml)
+
+    @staticmethod
+    def _copy_element(element, parent):
+        sub_element = ET.SubElement(parent, element.tag)
+        sub_element.text = element.text
+        return sub_element
+
+    def compile_class(self):
+        """ Compiles a complete class
+
+        class: 'class' className '{' classVarDec* subroutineDec* '}'
+        """
+        if self.cur_tkn.text != " class ":
+            return
+
+        # add root node
+        self.xml_tree = ET.Element("class")
+        class_node = self.xml_tree
+        _ = self._copy_element(self.cur_tkn, parent=class_node)
+        self.tknzr.advance()
+
+        # className node
+
+        _ = self._copy_element(self.cur_tkn, parent=class_node)
+        self.tknzr.advance()
+
+        # expecting to see '{'
+        _ = self._copy_element(self.cur_tkn, parent=class_node)
+        self.tknzr.advance()
+
+        self.current_node = class_node
+
+        # zero or more varDecs followed by zero or more subroutineDecs
+        # self.compile_class_var_dec()
+        self.compile_subroutine_dec()
+
+        # the closing '}'
+        #_ = self._copy_element(self.cur_tkn, class_node)
+
+    @property
+    def cur_tkn(self):
+        return self.tknzr.current_token
+
+    def write_tree(self, write_path=Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/xml_snippets/output.xml")):
+        xml = stringify_xml(self.xml_tree)
+        with open(write_path.as_posix(), 'w') as outfile:
+            outfile.write(xml)
+
+    def compile_class_var_dec(self):
+        """ Compiles a static variable declaration, or a field declaration """
+        if self.cur_tkn.text not in ["static", "field"]:
+            return
+
+        # insert the 'classVarDec' node and add its kind (field|static)
+        class_var_dec_node = ET.SubElement(self.current_node, "classVarDec")
+        _ = self._copy_element(self.cur_tkn, parent=class_var_dec_node)
+        self.tknzr.advance()
+
+        # handling 'type'
+        type_node = ET.SubElement(class_var_dec_node, 'type')
+        parent_node = type_node
+        if self.cur_tkn.text not in ["int", "char", "boolean"]:
+            class_name_node = ET.SubElement(type_node, "className")
+            parent_node = class_name_node
+        _ = self._copy_element(self.cur_tkn, parent=parent_node)
+        self.tknzr.advance()
+
+        # handling one or more 'varName' declarations
+
+        while True:
+            # extract the variable name
+            var_name_node = ET.SubElement(class_var_dec_node, 'varName')
+            _ = self._copy_element(self.cur_tkn, parent=var_name_node)
+            self.tknzr.advance()
+            if self.cur_tkn.text == ",":
+                # extract the delimiting comma
+                _ = self._copy_element(self.cur_tkn, parent=class_var_dec_node)
+                self.tknzr.advance()
+            else:
+                break
+
+        # add the terminating ';'
+        _ = self._copy_element(self.cur_tkn, parent=class_var_dec_node)
+        self.tknzr.advance()
+
+
+    def compile_subroutine_dec(self):
+        """ Compiles a complete method, function, or constructor """
+
+        if self.cur_tkn.text not in [" constructor ", " function ", " method "]:
+            return False
+
+        subroutineDec = ET.SubElement(self.current_node, "subroutineDec")
+        _ = self._copy_element(self.cur_tkn, subroutineDec)
+        self.tknzr.advance()
+
+        _ = self._copy_element(self.cur_tkn, subroutineDec)
+        self.tknzr.advance()
+
+        _ = self._copy_element(self.cur_tkn, subroutineDec)
+        self.tknzr.advance()
+
+        # eat open paren '('
+        _ = self._copy_element(self.cur_tkn, subroutineDec)
+        self.tknzr.advance()
+
+        # now handle the parameter list
+        self.current_node = ET.SubElement(subroutineDec, "parameterList")
+        self.current_node.text = "\n"
+        self.compile_parameter_list()
+
+        # eat the close-parent ')'
+        self.current_node = subroutineDec
+        assert self.cur_tkn.text == ' ) ', "expected ' ) ' got '{}'".format(self.cur_tkn.text)
+        _ = self._copy_element(self.cur_tkn, subroutineDec)
+        self.tknzr.advance()
+
+        # compile the subroutine body
+        subroutine_body = ET.SubElement(subroutineDec, 'subroutineBody')
+        self.current_node = subroutine_body
+        self.compile_subroutine_body()
+
+
+    def compile_parameter_list(self):
+        """ Compiles a (possibly empty) parameter list. Does not handle the enclosing '()' """
+
+        while True:
+
+            if self.cur_tkn.text == " ) ":
+                break
+
+            # type
+            _ = self._copy_element(self.cur_tkn, self.current_node)
+            self.tknzr.advance()
+
+            # varName
+            _ = self._copy_element(self.cur_tkn, self.current_node)
+            self.tknzr.advance()
+
+            if self.cur_tkn.text == " , ":
+                _ = self._copy_element(self.cur_tkn, self.current_node)
+                self.tknzr.advance()
+
+    def compile_subroutine_body(self):
+        """ Compiles a subroutine's body """
+        assert self.cur_tkn.text == ' { ', "expected ' { ' got '{}'".format(self.cur_tkn.text)
+        _ = self._copy_element(self.cur_tkn, self.current_node)
+        self.tknzr.advance()
+
+        self.compile_var_dec()
+
+
+        self.compile_statements()
+
+
+    def compile_var_dec(self):
+        """ Compiles a 'var' declaration
+
+        a 'varDec' element is only added if their is at least one variable declaration """
+        if self.cur_tkn.text != " var ":
+            return
+
+        # adding 'varDec' node
+        var_dec_node = ET.SubElement(self.current_node, "varDec")
+
+        # adding 'var'
+        _ = self._copy_element(self.cur_tkn, var_dec_node)
+        self.tknzr.advance()
+
+        # adding type
+        _ = self._copy_element(self.cur_tkn, var_dec_node)
+        self.tknzr.advance()
+
+        while True:
+
+            # adding name
+            _ = self._copy_element(self.cur_tkn, var_dec_node)
+            self.tknzr.advance()
+
+            # adding ',' or ';'
+            _ = self._copy_element(self.cur_tkn, var_dec_node)
+            previous_token = self.cur_tkn
+            self.tknzr.advance()
+
+            if previous_token.text == " ; ":
+                break
+
+
+    def compile_statements(self):
+        """ Compiles a sequence of statements. Does not handle the enclosing '{}'
+
+        Hint: Uses a loop to handle zero or more statement instances, according to the left-most token.
+        If the left-most token is 'if', 'while'..., ...it invokes 'compile_if', 'compile_while', ....
+
+        Note: There is no compile_statement method
+        """
+        self.current_node = ET.SubElement(self.current_node, 'statements')
+
+        while self.cur_tkn.text in [" do ", " while ", " if ", " let ", " return "]:
+            stmt_type = self.cur_tkn.text
+            if stmt_type == " do ":
+                self.compile_do()
+            elif stmt_type == " while ":
+                self.compile()
+            elif stmt_type == " if ":
+                self.compile_if()
+            elif stmt_type == " let ":
+                self.compile_let()
+            elif stmt_type == " return ":
+                self.compile_return()
+            else:
+                break
+
+            self.tknzr.advance()
+
+
+    def compile_let(self):
+        """ Compiles a 'let' statement """
+        pass
+
+    def compile_if(self):
+        """ Compiles an 'if' statement, possibly with a trailing 'else' clause """
+        pass
+
+    def compile_while(self):
+        """ Compiles a 'while' statement """
+        pass
+
+    def compile_do(self):
+        """ Compiles a 'do' statement """
+        do_statement  = ET.SubElement(self.current_node, 'doStatement')
+        self.current_node = do_statement
+
+        # add 'do'
+        _ = self._copy_element(self.cur_tkn, self.current_node)
+        self.tknzr.advance()
+
+        # add identifier (subroutineName, className, or varName)
+        _ = self._copy_element(self.cur_tkn, self.current_node)
+        self.tknzr.advance()
+
+        if self.cur_tkn.text == " . ":
+            # do xxx.xxx()
+            _ = self._copy_element(self.cur_tkn, self.current_node)
+            self.tknzr.advance()
+
+            # eat subroutineName, and advance (to '(')
+            _ = self._copy_element(self.cur_tkn, self.current_node)
+            self.tknzr.advance()
+
+
+        # eat the '(' and compile the expression list (if there is one)
+        _ = self._copy_element(self.cur_tkn, self.current_node)
+        self.tknzr.advance()
+        self.compile_expressison_list()
+
+        # eat the closing ')'
+        _ = self._copy_element(self.cur_tkn, do_statement)
+        self.tknzr.advance()
+
+        # eat the terminating ';'
+        _ = self._copy_element(self.cur_tkn, do_statement)
+        self.tknzr.advance()
+
+    def compile_return(self):
+        """ Compiles a 'return' statement """
+        pass
+
+    def compile_expression(self):
+        """ Compiles an expression """
+        self.current_node = ET.SubElement(self.current_node, 'expression')
+
+        self.compile_term()
+
+        while self.cur_tkn.text in [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]:
+            _ = self._copy_element(self.cur_tkn, self.current_node)
+            self.tknzr.advance()
+            self.compile_term()
+
+
+
+    def compile_term(self):
+        """ Compiles a term
+
+        If the current token is an identifier, the routines must distinguish between a variable, an array entry, or a
+        subroutine call. A single lookahead token (which may be one of '[', '(', or '.') suffices to distinguish
+        between the possibilities. Any other token is not part of this term and should not be advanced over. """
+        term_node = ET.SubElement(self.current_node, 'term')
+        tkn_tag = self.cur_tkn.tag
+        tkn_txt = self.cur_tkn.text
+        if tkn_tag in ["integerConstant", "keyword", "stringConstant"]:
+            # term -> integerConstant | stringConstant | keywordConstant
+            _ = self._copy_element(self.cur_tkn, term_node)
+            self.tknzr.advance()
+
+        elif tkn_txt in [" - ", " ~ "]:
+            # term -> unaryOp term
+            _ = self._copy_element(self.cur_tkn, term_node)
+            self.tknzr.advance()
+            self.compile_term()
+
+
+        elif tkn_txt == " ( ":
+            # term -> '(' expression ')'
+            _ = self._copy_element(self.cur_tkn, term_node)
+            self.tknzr.advance()
+            self.compile_expression()
+            # consume the closing paren
+            _ = self._copy_element(self.cur_tkn, term_node)
+            self.tknzr.advance()
+
+        elif tkn_tag == 'identifier':
+
+            tkn_now = self.cur_tkn
+            self.tknzr.advance()
+            tkn_nxt = self.cur_tkn
+
+            if tkn_nxt.text == ' [ ':
+                # term -> varName '[' expresion ']'
+                # tkn_now is a variable name, so add it, and add tkn_nxt ('[')
+                _ = self._copy_element(tkn_now, term_node)  # identifier
+                _ = self._copy_element(tkn_nxt, term_node)  # '['
+                self.tknzr.advance()
+                self.current_node = term_node
+                self.compile_expression()
+                _ = self._copy_element(self.cur_tkn, term_node) # ']'
+                self.tknzr.advance()
+
+
+            elif tkn_nxt.text == ' ( ' or tkn_nxt.text == ' . ':
+
+                _ = self._copy_element(tkn_now, term_node)  # identifier
+
+                if self.cur_tkn.text == " . ":
+
+                    _ = self._copy_element(self.cur_tkn, term_node)
+                    self.tknzr.advance()
+
+                    # eat subroutineName, and advance (to '(')
+                    _ = self._copy_element(self.cur_tkn, term_node)
+                    self.tknzr.advance()
+
+
+                # eat the '(' and compile the expression list (if there is one)
+                _ = self._copy_element(self.cur_tkn, term_node)
+                self.tknzr.advance()
+                self.current_node = term_node
+                self.compile_expressison_list()
+
+                # eat the closing ')'
+                _ = self._copy_element(self.cur_tkn, term_node)
+                self.tknzr.advance()
+
+
+            else:
+                # term -> varName
+                _ = self._copy_element(tkn_now, term_node)
+
+    def compile_expressison_list(self):
+        """ Compiles a (possibly empty) comma-separated list of expressions """
+        expression_list_node = ET.SubElement(self.current_node, 'expressionList')
+        counter = 0
+
+        if self.cur_tkn.text == ' ) ':
+            expression_list_node.text = "\n"
+            # This is an expression-less expressionList
+            return
+
+        while True:
+            counter += 1
+            log.warning("compiling expression: {}".format(counter))
+            self.current_node = expression_list_node
+            self.compile_expression()
+
+            if self.cur_tkn.text == ' , ':
+                log.warning("detecting another expression...")
+                _ = self._copy_element(self.cur_tkn, expression_list_node)
+                self.tknzr.advance()
+            else:
+                break
+
+
+
+
+class JackAnalyzer():
+
+    def __init__(self, path=None):
+        self.compilation_engine = None
+        self.jack_snippet = None
+        self.outfile_path = None
+        self.jack_file_paths = None
+        if path is not None:
+            assert path.exists(), "Analysis failed: non-existent path '{}'".format(path.as_posix())
+            if path.is_file():
+                assert path.suffix == ".jack", "Analysis failed: user-supplied filename must have '.jack' extension, not '{}'".format(path.suffix)
+                self.jack_file_paths = [path]
+            else:
+                self.jack_file_paths = []
+                for child in path.iterdir():
+                    if child.is_file() and child.suffix == ".jack":
+                        self.jack_file_paths.append(child)
+
+    @classmethod
+    def analyzer_for_snippet(cls, jack_snippet, user_defined_outfile_path=None):
+        analyzer = cls()
+        analyzer.jack_snippet = jack_snippet
+        if user_defined_outfile_path is None:
+            analyzer.outfile_path = Path(os.path.join(os.getcwd(), "jack_analyzed.xml"))
+        else:
+            analyzer.outfile_path = user_defined_outfile_path
+        return analyzer
+
+
+    def _analyze_snippet(self):
+        tknzr = Tokenizer(jack_code=self.jack_snippet)
+        self.compilation_engine = CompilationEngine(tokenizer=tknzr, output_file_path=self.outfile_path)
+        self.compilation_engine.compile()
+
+
+    def _contents_of_outfile(self):
+        return ET.parse(self.outfile_path.as_posix())
+
+    def analyze(self, return_results=False):
+        if self.jack_snippet is not None:
+            self._analyze_snippet()
+            if return_results:
+                return self._contents_of_outfile()
+
+        else:
+            resulting_xml = []
+            for path in self.jack_file_paths:
+                tknzr = Tokenizer(jack_filepath=path)
+                self.outfile_path = path.with_suffix("xml")
+                self.compilation_engine = CompilationEngine(tokenizer=tknzr, output_file_path=self.outfile_path)
+                self.compilation_engine.compile()
+                if return_results:
+                    resulting_xml.append(self._contents_of_outfile())
+            return resulting_xml
+
+
+class TokenizerTest(unittest.TestCase):
+
+    # Testing 'tokenize()'
+    def tokenize(self, jack_snippet):
+        tknzr = Tokenizer(jack_code=jack_snippet)
+        xml = tknzr.tokenize()
+        return [(child.tag, child.text) for child in xml]
+
+    def test_call(self):
+        jack_snippet = "point.getx()"
+        actual = self.tokenize(jack_snippet)
+        expected = [("identifier", " point "), ("symbol", " . "), ("identifier", " getx "), ("symbol", " ( "),
+                    ("symbol", " ) ")]
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))
+
+    def test_constant_let(self,):
+        jack_snippet = "let x = 10"
+        actual = self.tokenize(jack_snippet)
+        expected = [("keyword", " let "), ("identifier", " x "), ("symbol", " = "), ("integerConstant", " 10 ")]
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))
+
+    def test_symbolic_let(self):
+        jack_snippet = "var int g;"
+        actual = self.tokenize(jack_snippet)
+        expected = [("keyword", " var "), ("keyword", " int "), ("identifier", " g "), ("symbol", " ; ")]
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))
+
+    def test_return(self):
+        jack_snippet = "return Fraction.new(sum, denominator * other.getDenominator());"
+        actual = self.tokenize(jack_snippet)
+        expected = [("keyword", " return "), ("identifier", " Fraction "), ("symbol", " . "), ("identifier", " new "),
+                    ("symbol", " ( "), ("identifier", " sum "), ("symbol", " , "), ("identifier", " denominator "),
+                    ("symbol", " * "), ("identifier", " other "), ("symbol", " . "), ("identifier", " getDenominator "),
+                    ("symbol", " ( "), ("symbol", " ) "), ("symbol", " ) "), ("symbol", " ; ")]
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))
+
+    def test_do(self):
+        jack_snippet = 'do Output.printString("/");'
+        actual = self.tokenize(jack_snippet)
+        expected = [("keyword", " do "), ("identifier", " Output "), ("symbol", " . "), ("identifier", " printString "),
+                    ("symbol", " ( "), ("stringConstant", ' / '), ("symbol", " ) "), ("symbol", " ; ")]
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))
+
+
+    def test_constructor(self):
+        jack_snippet = "constructor Fraction new(int x, int y) {"
+        actual = self.tokenize(jack_snippet)
+        expected = [("keyword", " constructor "), ("identifier", " Fraction "), ("identifier", " new "), ("symbol", " ( "),
+            ("keyword", " int "), ("identifier", " x "), ("symbol", " , "), ("keyword", " int "), ("identifier", " y "),
+            ("symbol", " ) "), ("symbol", " { ")]
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))
+
+    def test_special_symbols(self):
+        jack_snippet = "x > y; y < z"
+        actual = self.tokenize(jack_snippet)
+        expected = [("identifier", " x "), ("symbol", " &gt; "), ("identifier", " y "), ("symbol", " ; "),
+                    ("identifier", " y "), ("symbol", " &lt; "), ("identifier", " z ")]
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))
+
+    def test_class_constructor(self):
+        jack_snippet = """
+        class Main {
+            field int numerator, denominator;
+        }
+        """
+        actual = self.tokenize(jack_snippet)
+        expected = [("keyword", " class "), ("identifier", " Main "), ("symbol", " { "), ("keyword", " field "),
+                    ("keyword", " int "), ("identifier", " numerator "), ("symbol", " , "), ("identifier", " denominator "),
+                    ("symbol", " ; "), ("symbol", " } ")]
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))
+
+    # Testing 'advance()'
+    def test_advance_a(self):
+        jack_snippet = "constructor Fraction new(int x, int y) {"
+        tokenizer = Tokenizer(jack_code=jack_snippet)
+        tokenizer.advance()
+        tokenizer.advance()
+        tokenizer.advance()
+        xml = tokenizer.current_token
+        self.assertTrue(xml.text == " new ", "advance() returned unexpected result: got '', expected 'new'".format(xml.text))
+
+    def test_advance_b(self):
+        jack_snippet = "return Fraction.new(sum, denominator * other.getDenominator());"
+        tokenizer = Tokenizer(jack_code=jack_snippet)
+        for _ in range(10):
+            tokenizer.advance()
+        xml = tokenizer.current_token
+        self.assertTrue(xml.text == " other ", "advance() returned unexpected result: got '', expected 'other'".format(xml.text))
+
+    def test_advance_at_init(self):
+        jack_snippet = "return Fraction.new(sum, denominator * other.getDenominator());"
+        tokenizer = Tokenizer(jack_code=jack_snippet)
+        self.assertIsNone(tokenizer.current_token)
+
+    def test_advance_at_end(self):
+        jack_snippet = "return Fraction.new(sum, denominator * other.getDenominator());"
+        tokenizer = Tokenizer(jack_code=jack_snippet)
+        for _ in range(100):
+            tokenizer.advance()
+        xml = tokenizer.current_token
+        self.assertTrue(xml.text == " ; ", "advance() returned unexpected result: got '', expected ';'".format(xml.text))
+        tokenizer.advance()
+        xml = tokenizer.current_token
+        self.assertTrue(xml.text == " ; ", "advance() returned unexpected result: got '', expected ';'".format(xml.text))
+
+    # Testing 'has_more_tokens()'
+    def test_has_more_tokens(self):
+        jack_snippet = "return 12"
+        tokenizer = Tokenizer(jack_code=jack_snippet)
+        self.assertTrue(tokenizer.has_more_tokens(), "'has_more_tokens()' reporting False - expected True")
+        tokenizer.advance()
+        tokenizer.advance()
+        self.assertFalse(tokenizer.has_more_tokens(), "'has_more_tokens()' reporting True - expected False")
+
+
+    def test_keyword(self):
+        jack_snippet = "return 12"
+        tokenizer = Tokenizer(jack_code=jack_snippet)
+        tokenizer.advance()
+        with self.assertRaises(AssertionError):
+            tokenizer.identifier()
+        self.assertTrue(tokenizer.keyword() == " return ", "Expected current_token to be of type 'keyword'")
+
+    def test_int_val(self):
+        jack_snippet = "return 12"
+        tokenizer = Tokenizer(jack_code=jack_snippet)
+        tokenizer.advance()
+        tokenizer.advance()
+        with self.assertRaises(AssertionError):
+            tokenizer.keyword()
+        self.assertTrue(tokenizer.int_val() == 12, "Expected current_token to be of type 'int_const'")
+
+class AnalyzerSetUpTest(unittest.TestCase):
+
+    def test_valid_file_path_argument(self):
+        analyzer = JackAnalyzer(path=Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/Pong/Ball.jack"))
+        self.assertTrue(len(analyzer.jack_file_paths) == 1, "Expected one path in jack_file_paths list")
+        self.assertEqual(analyzer.jack_file_paths[0].as_posix(), "/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/Pong/Ball.jack")
+
+    def test_wrong_filepath_extension(self):
+        self.assertRaises(AssertionError, JackAnalyzer, Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/Pong/README.md"))
+
+    def test_nonexistent_filepath(self):
+        self.assertRaises(AssertionError, JackAnalyzer, Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/Pong/erehwon.md"))
+
+    def test_valid_directory_path_as_argument(self):
+        pong_directory = "/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/Pong/"
+        expected_jack_paths = list(map(lambda x: pong_directory + x + ".jack", ["Ball", "HighScores", "Racket"]))
+
+        analyzer = JackAnalyzer(path=Path(pong_directory))
+        actual_jack_paths = sorted([path.as_posix() for path in analyzer.jack_file_paths])
+        self.assertListEqual(expected_jack_paths, actual_jack_paths, "contents of 'jack_file_paths' is unexpected.")
+
+class AnalyzerShortTests(unittest.TestCase):
+
+    def xml_at_index(self, index):
+        xpath = "*/.[{}]".format(index)
+        a_test = self.test_xml.findall(xpath)[0]
+        snippet = a_test.findall("./jack_snippet")[0]
+        compilation_node = a_test.findall("./compilation")[0]
+        expected_xml = compilation_node.findall("./")[0]
+        return snippet, expected_xml
+
+    @classmethod
+    def setUpClass(cls):
+        tests_xml = Path(os.path.join(JACK_ANALYZER_DIR, "xml_snippets/test_snippets.xml"))
+        xml_obj = ET.parse(tests_xml.as_posix())
+        cls.test_xml = xml_obj.getroot()
+        return cls
+
+    def test_snippet_a(self):
+
+        snippet, expected_xml = self.xml_at_index(1)
+        ja = JackAnalyzer.analyzer_for_snippet(snippet.text)
+
+        actual_xml = ja.analyze(return_results=True).getroot()
+        log.warning(stringify_xml(actual_xml))
+        self.assertEqual(stringify_xml(expected_xml), stringify_xml(actual_xml))
+
+def stringify_xml(elem):
+    """Return a pretty-printed XML string for the Element.
+    """
+    rough_string = ET.tostring(elem, 'utf-8')
+    reparsed = minidom.parseString(rough_string)
+    pretty_string = reparsed.toprettyxml(indent="    ")
+    return "\n".join(list(filter(lambda x: True if len(x.strip()) > 0 else False, pretty_string.split("\n"))))
+
+if __name__ == "__main__":
+    unittest.main()
+

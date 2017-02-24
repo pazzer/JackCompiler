@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<compilation_unit_tests>
+	<test>
+		<test_name></test_name>
+		<jack_snippet>
+		class Main {
+			method void Main() {
+				do Output.printInt(current.getData(99));
+   			}
+   		}
+		</jack_snippet>
+		<compilation>
+			<class>
+				<keyword> class </keyword>
+				<identifier> Main </identifier>
+				<symbol> { </symbol>
+				<subroutineDec>
+					<keyword> method </keyword>
+					<keyword> void </keyword>
+					<identifier> dispose </identifier>
+					<symbol> ( </symbol>
+					<parameterList>
+					</parameterList>
+					<symbol> ) </symbol>
+					<subroutineBody>
+						<symbol> { </symbol>
+					  	<statements>
+							<doStatement>
+						  		<keyword> do </keyword>
+						  		<identifier> square </identifier>
+						  		<symbol> . </symbol>
+						  		<identifier> dispose </identifier>
+						  		<symbol> ( </symbol>
+						  		<expressionList>
+						  		</expressionList>
+						  	<symbol> ) </symbol>
+						  	<symbol> ; </symbol>
+							</doStatement>
+							<doStatement>
+						  		<keyword> do </keyword>
+						  		<identifier> Memory </identifier>
+						  		<symbol> . </symbol>
+						  		<identifier> deAlloc </identifier>
+						  		<symbol> ( </symbol>
+						  		<expressionList>
+									<expression>
+							  			<term>
+										<identifier> square </identifier>
+							  			</term>
+									</expression>
+						  		</expressionList>
+						  		<symbol> ) </symbol>
+						  		<symbol> ; </symbol>
+							</doStatement>
+							<returnStatement>
+						  		<keyword> return </keyword>
+						  		<symbol> ; </symbol>
+							</returnStatement>
+					  	</statements>
+					  	<symbol> } </symbol>
+					</subroutineBody>
+				</subroutineDec>
+				<symbol> } </symbol>
+			</class>
+		</compilation>
+	</test>
+</compilation_unit_tests>
