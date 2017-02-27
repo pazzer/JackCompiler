@@ -17,13 +17,14 @@ import unittest
 JACK_ANALYZER_DIR = "/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/"
 PROJ_10_DIR = "/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/nand2tetris/projects/10/"
 
-KEYWORDS = ["class", "constructor", "function", "method", "field", "static", "var", "int", "char", "boolean",
-            "void", "true", "false", "null", "this", "let", "do", "if", "else", "while", "return"]
-RE_KEYWORD = re.compile("(?:\s*)(?P<keyword>{})".format("|".join(KEYWORDS)))
-
 SYMBOLS = "{ } ( ) [ ] . , ; + - * / & | < > = ~"
-SYMBOLS_LIST = list(map(lambda x: '\\'+x, SYMBOLS.split()))
-RE_SYMBOL = re.compile("(?:\s*)(?P<symbol>{})".format("|".join(SYMBOLS_LIST)))
+KEYWORDS = "class constructor function method field static var int char boolean void true false null this let do if \
+else while return"
+
+RE_KEYWORD = re.compile("(?:\s*)(?P<keyword>{})".format("|".join(KEYWORDS.split())))
+
+ESCAPED_SYMBOLS= list(map(lambda x: '\\'+x, SYMBOLS.split()))
+RE_SYMBOL = re.compile("(?:\s*)(?P<symbol>{})".format("|".join(ESCAPED_SYMBOLS)))
 
 RE_INT_CONST = re.compile("(?:\s*)(?P<integerConstant>[0-9]+)")
 
@@ -638,61 +639,8 @@ class JackAnalyzer():
             return resulting_xml
 
 
-class OfficialTokenizerTests(unittest.TestCase):
-
-    def _prepare_official_tokens_test(self, jack_file_path, t_file_path):
-        expected_xml_tokens = ET.parse(t_file_path.as_posix())
-        expected_string_tokens = stringify_xml(expected_xml_tokens.getroot())
-
-        tknzr = Tokenizer(jack_filepath=jack_file_path)
-        actual_xml_tokens = tknzr.tokenize()
-        actual_string_tokens = stringify_xml(actual_xml_tokens)
-
-        return actual_string_tokens, expected_string_tokens
-
-    def test_main_t(self):
-        main_jack_path = Path(os.path.join(PROJ_10_DIR, "Square/Main.jack"))
-        main_t_path = Path(os.path.join(PROJ_10_DIR, "Square/MainT.xml"))
-        actual, expected = self._prepare_official_tokens_test(main_jack_path, main_t_path)
-        self.assertEqual(actual, expected)
-
-    def test_square_t(self):
-        square_jack_path = Path(os.path.join(PROJ_10_DIR, "Square/Square.jack"))
-        square_t_path = Path(os.path.join(PROJ_10_DIR, "Square/SquareT.xml"))
-        actual, expected = self._prepare_official_tokens_test(square_jack_path, square_t_path)
-        self.assertEqual(actual, expected)
-
-    def test_square_game_t(self):
-        square_jack_path = Path(os.path.join(PROJ_10_DIR, "Square/SquareGame.jack"))
-        square_t_path = Path(os.path.join(PROJ_10_DIR, "Square/SquareGameT.xml"))
-        actual, expected = self._prepare_official_tokens_test(square_jack_path, square_t_path)
-        self.assertEqual(actual, expected)
-
-    def test_array_test_main_t(self):
-        square_jack_path = Path(os.path.join(PROJ_10_DIR, "ArrayTest/Main.jack"))
-        square_t_path = Path(os.path.join(PROJ_10_DIR, "ArrayTest/MainT.xml"))
-        actual, expected = self._prepare_official_tokens_test(square_jack_path, square_t_path)
-        self.assertEqual(actual, expected)
 
 
-    def test_expressionless_square_main(self):
-        square_jack_path = Path(os.path.join(PROJ_10_DIR, "ExpressionLessSquare/Main.jack"))
-        square_t_path = Path(os.path.join(PROJ_10_DIR, "ExpressionLessSquare/MainT.xml"))
-        actual, expected = self._prepare_official_tokens_test(square_jack_path, square_t_path)
-        self.assertEqual(actual, expected)
-
-    def test_expressionless_square_square(self):
-        square_jack_path = Path(os.path.join(PROJ_10_DIR, "ExpressionLessSquare/Square.jack"))
-        square_t_path = Path(os.path.join(PROJ_10_DIR, "ExpressionLessSquare/SquareT.xml"))
-        actual, expected = self._prepare_official_tokens_test(square_jack_path, square_t_path)
-        self.assertEqual(actual, expected)
-
-    def test_expressionless_square_square_game(self):
-        square_jack_path = Path(os.path.join(PROJ_10_DIR, "ExpressionLessSquare/SquareGame.jack"))
-        square_t_path = Path(os.path.join(PROJ_10_DIR, "ExpressionLessSquare/SquareGameT.xml"))
-        actual, expected = self._prepare_official_tokens_test(square_jack_path, square_t_path)
-
-        self.assertEqual(actual, expected)
 
 class PaulsTokenizerTests(unittest.TestCase):
 
