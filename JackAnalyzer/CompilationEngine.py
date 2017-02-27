@@ -48,28 +48,17 @@ class CompilationEngine():
         self.current_node = ET.Element("class")
         self.xml_tree._setroot(self.current_node)
 
-        # kw -> 'class'
-        self._insert_current_token()
-
-        # id -> 'className'
-        self._insert_current_token()
-
-        # symbol -> '{' (opens the class body)
-        self._insert_current_token()
-
+        self._insert_current_token() # 'class'
+        self._insert_current_token() # className
+        self._insert_current_token() # '{'
         # zero or more varDecs
         # ???
-
-        # zero or more subroutineDecs
         self.compile_subroutine_dec()
-
-        # symbol -> '}' (closes the class body)
-        self._insert_current_token()
+        self._insert_current_token() # '}'
 
     @property
     def cur_tkn(self):
         return self.tknzr.current_token
-
 
     def compile_class_var_dec(self):
         """ Compiles a static variable declaration, or a field declaration """
@@ -111,31 +100,24 @@ class CompilationEngine():
 
     def compile_subroutine_dec(self):
         """ Compiles a complete method, function, or constructor """
-        parent_on_entry = self.current_node
-
         if self.cur_tkn.text not in [" constructor ", " function ", " method "]:
             return False
 
-        subroutineDec = ET.SubElement(self.current_node, "subroutineDec")
-        self.current_node = subroutineDec
+        parent_on_entry = self.current_node
 
-        self._insert_current_token()
-        self._insert_current_token()
-        self._insert_current_token()
-        self._insert_current_token()
+        self.current_node = ET.SubElement(self.current_node, "subroutineDec")
 
-        # now handle the parameter list
+        self._insert_current_token() # 'constructor'|'function'|'method'
+        self._insert_current_token() # 'void'|type
+        self._insert_current_token() # subroutineName
+
+        self._insert_current_token() # '('
         self.compile_parameter_list()
-
-        # eat the close-parent ')'
-        assert self.cur_tkn.text == ' ) ', "expected ' ) ' got '{}'".format(self.cur_tkn.text)
-
-        self._insert_current_token()
+        self._insert_current_token() # ')'
 
         self.compile_subroutine_body()
 
         self.current_node = parent_on_entry
-
 
     def compile_parameter_list(self):
         """ Compiles a (possibly empty) parameter list. Does not handle the enclosing '()' """
@@ -144,27 +126,18 @@ class CompilationEngine():
         self.current_node = ET.SubElement(self.current_node, "parameterList")
         self.current_node.text = "\n"
 
-
-
         while True:
 
             if self.cur_tkn.text == " ) ":
                 break
 
-            # type
-            self._insert_current_token()
-
-            # varName
-            _ = self._copy_element(self.cur_tkn, self.current_node)
-            self.tknzr.advance()
+            self._insert_current_token() # type (char, int, ...)
+            self._insert_current_token() # varName
 
             if self.cur_tkn.text == " , ":
-                _ = self._copy_element(self.cur_tkn, self.current_node)
-                self.tknzr.advance()
+                self._insert_current_token() # ' , '
 
         self.current_node = parent_on_entry
-
-
 
     def compile_subroutine_body(self):
         """ Compiles a subroutine's body """
@@ -173,14 +146,10 @@ class CompilationEngine():
         parent_on_entry = self.current_node
         self.current_node = ET.SubElement(self.current_node, 'subroutineBody')
 
-        # opening '{'
-        self._insert_current_token()
-
+        self._insert_current_token() # '{'
         self.compile_var_dec()
         self.compile_statements()
-
-        # closing '}'
-        self._insert_current_token()
+        self._insert_current_token() # '}'
 
         self.current_node = parent_on_entry
 
@@ -197,16 +166,12 @@ class CompilationEngine():
         # adding 'varDec' node
         self.current_node = ET.SubElement(self.current_node, "varDec")
 
-        # adding 'var'
-        self._insert_current_token()
-
-        # adding type
-        self._insert_current_token()
+        self._insert_current_token() # 'var'
+        self._insert_current_token() # variable type (char, int...)
 
         while True:
 
-            # adding name
-            self._insert_current_token()
+            self._insert_current_token() # variable name
 
             # adding ',' or ';'
             previous_token = self.cur_tkn
@@ -243,7 +208,6 @@ class CompilationEngine():
             else:
                 break
 
-            #self.tknzr.advance()
         self.current_node = parent_on_entry
 
 
@@ -263,12 +227,10 @@ class CompilationEngine():
         """ Compiles a 'do' statement """
         parent_on_entry = self.current_node
 
-
-        do_statement  = ET.SubElement(self.current_node, 'doStatement')
+        do_statement = ET.SubElement(self.current_node, 'doStatement')
         self.current_node = do_statement
 
-        # add 'do'
-        self._insert_current_token()
+        self._insert_current_token() # 'do'
 
         ## TRYING CALLING DIRECTLY INTO self.term to avoid replicating the code below.
 
@@ -279,17 +241,11 @@ class CompilationEngine():
             self._insert_current_token() # do xxx.xxx()
             self._insert_current_token() # eat subroutineName
 
-        # eat the '(' and compile the expression list (if there is one)
-        self._insert_current_token()
+        self._insert_current_token() # '('
         self.compile_expressison_list()
+        self._insert_current_token() # ')'
+        self._insert_current_token() # ';'
 
-        # eat the closing ')'
-        _ = self._copy_element(self.cur_tkn, do_statement)
-        self.tknzr.advance()
-
-        # eat the terminating ';'
-        _ = self._copy_element(self.cur_tkn, do_statement)
-        self.tknzr.advance()
 
         self.current_node = parent_on_entry
 
@@ -313,14 +269,11 @@ class CompilationEngine():
         self.current_node = ET.SubElement(self.current_node, 'expression')
         self.compile_term()
 
-
         while self.cur_tkn.text in [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]:
             self._insert_current_token()
             self.compile_term()
 
         self.current_node = parent_on_entry
-
-
 
     def compile_term(self):
         """ Compiles a term
@@ -329,9 +282,8 @@ class CompilationEngine():
         subroutine call. A single lookahead token (which may be one of '[', '(', or '.') suffices to distinguish
         between the possibilities. Any other token is not part of this term and should not be advanced over. """
         parent_on_entry = self.current_node
-
-        term_node = ET.SubElement(self.current_node, 'term')
-        self.current_node = term_node
+        logging.warning(self.current_node.tag)
+        self.current_node = ET.SubElement(self.current_node, 'term')
         tkn_tag = self.cur_tkn.tag
         tkn_txt = self.cur_tkn.text
 
@@ -358,13 +310,13 @@ class CompilationEngine():
 
             if tkn_nxt.text == ' [ ':
                 # term -> varName '[' expresion ']'
-                _ = self._copy_element(tkn_now, term_node)  # varName
+                _ = self._copy_element(tkn_now, self.current_node)  # varName
                 self._insert_current_token() # '['
                 self.compile_expression()
                 self._insert_current_token() # ']'
 
             elif tkn_nxt.text == ' ( ' or tkn_nxt.text == ' . ':
-                _ = self._copy_element(tkn_now, term_node)  # identifier
+                _ = self._copy_element(tkn_now, self.current_node)  # identifier
 
                 if self.cur_tkn.text == " . ":
                     self._insert_current_token() # '.'
@@ -376,7 +328,7 @@ class CompilationEngine():
 
             else:
                 # term -> varName
-                _ = self._copy_element(tkn_now, term_node)
+                _ = self._copy_element(tkn_now, self.current_node)
 
         self.current_node = parent_on_entry
 
@@ -388,7 +340,7 @@ class CompilationEngine():
             expression_list_node.text = "\n"
             return
 
-        parent_on_entry = expression_list_node
+        parent_on_entry = self.current_node
         self.current_node = expression_list_node
         while True:
 
