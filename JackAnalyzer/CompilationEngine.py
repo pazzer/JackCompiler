@@ -132,15 +132,13 @@ class CompilationEngine():
         self._insert_current_token()
 
         # now handle the parameter list
-        self.current_node = ET.SubElement(self.current_node, "parameterList")
-        self.current_node.text = "\n"
         self.compile_parameter_list()
 
         # eat the close-parent ')'
-        self.current_node = subroutineDec
         assert self.cur_tkn.text == ' ) ', "expected ' ) ' got '{}'".format(self.cur_tkn.text)
-        _ = self._copy_element(self.cur_tkn, subroutineDec)
-        self.tknzr.advance()
+
+        self._insert_current_token()
+
 
         # compile the subroutine body
         subroutine_body = ET.SubElement(subroutineDec, 'subroutineBody')
@@ -152,6 +150,12 @@ class CompilationEngine():
 
     def compile_parameter_list(self):
         """ Compiles a (possibly empty) parameter list. Does not handle the enclosing '()' """
+        parent_on_entry = self.current_node
+
+        self.current_node = ET.SubElement(self.current_node, "parameterList")
+        self.current_node.text = "\n"
+
+
 
         while True:
 
@@ -169,9 +173,17 @@ class CompilationEngine():
                 _ = self._copy_element(self.cur_tkn, self.current_node)
                 self.tknzr.advance()
 
+        self.current_node = parent_on_entry
+
+
+
     def compile_subroutine_body(self):
         """ Compiles a subroutine's body """
         assert self.cur_tkn.text == ' { ', "expected ' { ' got '{}'".format(self.cur_tkn.text)
+
+
+
+
         subroutine_body = self.current_node
         _ = self._copy_element(self.cur_tkn, self.current_node)
         self.tknzr.advance()
