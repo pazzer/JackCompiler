@@ -29,13 +29,6 @@ class CompilationEngine():
         return sub_element
 
 
-    # def _insert_element(self, element, parent, advance=True):
-    #     sub_element = ET.SubElement(parent, element.tag)
-    #     sub_element.text = element.text
-    #     if advance:
-    #         self.tknzr.advance()
-    #     return  sub_element
-
     def _insert_current_token(self, parent=None, advance=True):
         parent = self.current_node if parent is None else parent
         sub_element = ET.SubElement(parent, self.cur_tkn.tag)
@@ -338,32 +331,27 @@ class CompilationEngine():
         parent_on_entry = self.current_node
 
         term_node = ET.SubElement(self.current_node, 'term')
+        self.current_node = term_node
         tkn_tag = self.cur_tkn.tag
         tkn_txt = self.cur_tkn.text
 
         if tkn_tag in ["integerConstant", "keyword", "stringConstant"]:
             # term -> integerConstant | stringConstant | keywordConstant
-            _ = self._copy_element(self.cur_tkn, term_node)
-            self.tknzr.advance()
+            self._insert_current_token()
 
         elif tkn_txt in [" - ", " ~ "]:
             # term -> unaryOp term
-            _ = self._copy_element(self.cur_tkn, term_node)
-            self.tknzr.advance()
+            self._insert_current_token()
             self.compile_term()
-
 
         elif tkn_txt == " ( ":
             # term -> '(' expression ')'
-            _ = self._copy_element(self.cur_tkn, term_node)
-            self.tknzr.advance()
+            self._insert_current_token()
             old_node = self.current_node
-            self.current_node = term_node
             self.compile_expression()
-            self.current_node = term_node
 
             # consume the closing paren
-            assert self.cur_tkn.text == " ) ", "wrong! current token is not closing paren ' ) '"
+            assert self.cur_tkn.text == " ) ", "Ooops! current token is not closing paren ' ) '"
             _ = self._copy_element(self.cur_tkn, term_node)
             self.current_node = old_node
             self.tknzr.advance()
@@ -414,7 +402,6 @@ class CompilationEngine():
 
             else:
                 # term -> varName
-                #logging.warning("adding element: {}".format(tkn_now.text))
                 _ = self._copy_element(tkn_now, term_node)
 
         self.current_node = parent_on_entry
