@@ -124,21 +124,15 @@ class CompilationEngine():
             return False
 
         subroutineDec = ET.SubElement(self.current_node, "subroutineDec")
-        _ = self._copy_element(self.cur_tkn, subroutineDec)
-        self.tknzr.advance()
+        self.current_node = subroutineDec
 
-        _ = self._copy_element(self.cur_tkn, subroutineDec)
-        self.tknzr.advance()
-
-        _ = self._copy_element(self.cur_tkn, subroutineDec)
-        self.tknzr.advance()
-
-        # eat open paren '('
-        _ = self._copy_element(self.cur_tkn, subroutineDec)
-        self.tknzr.advance()
+        self._insert_current_token()
+        self._insert_current_token()
+        self._insert_current_token()
+        self._insert_current_token()
 
         # now handle the parameter list
-        self.current_node = ET.SubElement(subroutineDec, "parameterList")
+        self.current_node = ET.SubElement(self.current_node, "parameterList")
         self.current_node.text = "\n"
         self.compile_parameter_list()
 
