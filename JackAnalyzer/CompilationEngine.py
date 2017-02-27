@@ -347,6 +347,7 @@ class CompilationEngine():
         elif tkn_txt == " ( ":
             # term -> '(' expression ')'
             self._insert_current_token()
+
             old_node = self.current_node
             self.compile_expression()
 
@@ -357,22 +358,18 @@ class CompilationEngine():
             self.tknzr.advance()
 
         elif tkn_tag == 'identifier':
-
+            # need to lookahead
             tkn_now = self.cur_tkn
             self.tknzr.advance()
             tkn_nxt = self.cur_tkn
 
             if tkn_nxt.text == ' [ ':
                 # term -> varName '[' expresion ']'
-                # tkn_now is a variable name, so add it, and add tkn_nxt ('[')
-                _ = self._copy_element(tkn_now, term_node)  # identifier
-                _ = self._copy_element(tkn_nxt, term_node)  # '['
-                self.tknzr.advance()
-                self.current_node = term_node
+                _ = self._copy_element(tkn_now, term_node)  # varName
+                self._insert_current_token() # '['
                 self.compile_expression()
-                self.current_node = term_node
-                _ = self._copy_element(self.cur_tkn, term_node) # ']'
-                self.tknzr.advance()
+                self._insert_current_token() # ']'
+
 
 
             elif tkn_nxt.text == ' ( ' or tkn_nxt.text == ' . ':
