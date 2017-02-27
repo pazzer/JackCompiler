@@ -2,7 +2,6 @@ __author__ = 'paulpatterson'
 
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-from pathlib import Path
 import logging
 
 class CompilationEngine():
@@ -21,13 +20,12 @@ class CompilationEngine():
         self.compile_class()
         with open(self.output_file_path.as_posix(), "w") as outfile:
             outfile.write(stringify_xml(self.xml_tree.getroot()))
-    #
+
     @staticmethod
     def _copy_element(element, parent):
         sub_element = ET.SubElement(parent, element.tag)
         sub_element.text = element.text
         return sub_element
-
 
     def _insert_current_token(self, parent=None, advance=True):
         parent = self.current_node if parent is None else parent
@@ -97,7 +95,6 @@ class CompilationEngine():
         _ = self._copy_element(self.cur_tkn, parent=class_var_dec_node)
         self.tknzr.advance()
 
-
     def compile_subroutine_dec(self):
         """ Compiles a complete method, function, or constructor """
         if self.cur_tkn.text not in [" constructor ", " function ", " method "]:
@@ -152,7 +149,6 @@ class CompilationEngine():
         self._insert_current_token() # '}'
 
         self.current_node = parent_on_entry
-
 
     def compile_var_dec(self):
         """ Compiles a 'var' declaration
@@ -210,7 +206,6 @@ class CompilationEngine():
 
         self.current_node = parent_on_entry
 
-
     def compile_let(self):
         """ Compiles a 'let' statement """
         pass
@@ -225,7 +220,7 @@ class CompilationEngine():
 
     def compile_do(self):
         """ Compiles a 'do' statement """
-        parent_on_entry = self.current_node
+        parent_node = self.current_node
 
         do_statement = ET.SubElement(self.current_node, 'doStatement')
         self.current_node = do_statement
@@ -234,20 +229,20 @@ class CompilationEngine():
         self.compile_term() # term will 'expand' to 'subroutineCall'
         self._insert_current_token() # ';'
 
-        self.current_node = parent_on_entry
+        self.current_node = parent_node
 
     def compile_return(self):
         """ Compiles a 'return' statement """
-        return_statement = ET.SubElement(self.current_node, 'returnStatement')
-        _ = self._copy_element(self.cur_tkn, return_statement)
-        self.tknzr.advance()
+        parent_node = self.current_node
 
-        if self.cur_tkn.text == " ; ":
-            _ = self._copy_element(self.cur_tkn, return_statement)
-        else:
-            pass
+        self.current_node = ET.SubElement(self.current_node, 'returnStatement')
+        self._insert_current_token()
 
-        self.tknzr.advance()
+        if self.cur_tkn.text != " ; ":
+            self.compile_expression()
+
+        self._insert_current_token()
+        self.current_node = parent_node
 
     def compile_expression(self):
         """ Compiles an expression """
