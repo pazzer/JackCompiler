@@ -230,22 +230,9 @@ class CompilationEngine():
         do_statement = ET.SubElement(self.current_node, 'doStatement')
         self.current_node = do_statement
 
-        self._insert_current_token() # 'do'
-
-        ## TRYING CALLING DIRECTLY INTO self.term to avoid replicating the code below.
-
-        # add identifier (subroutineName, className, or varName)
-        self._insert_current_token()
-
-        if self.cur_tkn.text == " . ":
-            self._insert_current_token() # do xxx.xxx()
-            self._insert_current_token() # eat subroutineName
-
-        self._insert_current_token() # '('
-        self.compile_expressison_list()
-        self._insert_current_token() # ')'
+        self._insert_current_token() # 'do'.
+        self.compile_term() # term will 'expand' to 'subroutineCall'
         self._insert_current_token() # ';'
-
 
         self.current_node = parent_on_entry
 
@@ -282,8 +269,9 @@ class CompilationEngine():
         subroutine call. A single lookahead token (which may be one of '[', '(', or '.') suffices to distinguish
         between the possibilities. Any other token is not part of this term and should not be advanced over. """
         parent_on_entry = self.current_node
-        logging.warning(self.current_node.tag)
-        self.current_node = ET.SubElement(self.current_node, 'term')
+        if self.current_node.tag != "doStatement":
+            self.current_node = ET.SubElement(self.current_node, 'term')
+
         tkn_tag = self.cur_tkn.tag
         tkn_txt = self.cur_tkn.text
 
