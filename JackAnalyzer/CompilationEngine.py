@@ -139,10 +139,6 @@ class CompilationEngine():
 
         self._insert_current_token()
 
-
-        # compile the subroutine body
-        subroutine_body = ET.SubElement(subroutineDec, 'subroutineBody')
-        self.current_node = subroutine_body
         self.compile_subroutine_body()
 
         self.current_node = parent_on_entry
@@ -181,20 +177,22 @@ class CompilationEngine():
         """ Compiles a subroutine's body """
         assert self.cur_tkn.text == ' { ', "expected ' { ' got '{}'".format(self.cur_tkn.text)
 
+        parent_on_entry = self.current_node
+        self.current_node = ET.SubElement(self.current_node, 'subroutineBody')
 
+        # opening '{'
+        self._insert_current_token()
 
-
-        subroutine_body = self.current_node
-        _ = self._copy_element(self.cur_tkn, self.current_node)
-        self.tknzr.advance()
 
         self.compile_var_dec()
 
 
         self.compile_statements()
 
-        _ = self._copy_element(self.cur_tkn, subroutine_body)
+        # closing '}'
+        self._insert_current_token()
 
+        self.current_node = parent_on_entry
 
 
     def compile_var_dec(self):
