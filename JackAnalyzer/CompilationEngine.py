@@ -183,10 +183,7 @@ class CompilationEngine():
         # opening '{'
         self._insert_current_token()
 
-
         self.compile_var_dec()
-
-
         self.compile_statements()
 
         # closing '}'
@@ -202,31 +199,30 @@ class CompilationEngine():
         if self.cur_tkn.text != " var ":
             return
 
+        parent_on_entry = self.current_node
+
         # adding 'varDec' node
-        var_dec_node = ET.SubElement(self.current_node, "varDec")
+        self.current_node = ET.SubElement(self.current_node, "varDec")
 
         # adding 'var'
-        _ = self._copy_element(self.cur_tkn, var_dec_node)
-        self.tknzr.advance()
+        self._insert_current_token()
 
         # adding type
-        _ = self._copy_element(self.cur_tkn, var_dec_node)
-        self.tknzr.advance()
+        self._insert_current_token()
 
         while True:
 
             # adding name
-            _ = self._copy_element(self.cur_tkn, var_dec_node)
-            self.tknzr.advance()
+            self._insert_current_token()
 
             # adding ',' or ';'
-            _ = self._copy_element(self.cur_tkn, var_dec_node)
             previous_token = self.cur_tkn
-            self.tknzr.advance()
+            self._insert_current_token()
 
             if previous_token.text == " ; ":
                 break
 
+        self.current_node = parent_on_entry
 
     def compile_statements(self):
         """ Compiles a sequence of statements. Does not handle the enclosing '{}'
@@ -236,7 +232,7 @@ class CompilationEngine():
 
         Note: There is no compile_statement method
         """
-        old_node = self.current_node
+        parent_on_entry = self.current_node
         self.current_node = ET.SubElement(self.current_node, 'statements')
 
         while self.cur_tkn.text in [" do ", " while ", " if ", " let ", " return "]:
@@ -255,7 +251,7 @@ class CompilationEngine():
                 break
 
             #self.tknzr.advance()
-        self.current_node = old_node
+        self.current_node = parent_on_entry
 
 
     def compile_let(self):
@@ -272,33 +268,26 @@ class CompilationEngine():
 
     def compile_do(self):
         """ Compiles a 'do' statement """
-        stmts_node = self.current_node
+        parent_on_entry = self.current_node
+
+
         do_statement  = ET.SubElement(self.current_node, 'doStatement')
         self.current_node = do_statement
 
         # add 'do'
-        _ = self._copy_element(self.cur_tkn, self.current_node)
-        self.tknzr.advance()
+        self._insert_current_token()
 
         ## TRYING CALLING DIRECTLY INTO self.term to avoid replicating the code below.
 
         # add identifier (subroutineName, className, or varName)
-        _ = self._copy_element(self.cur_tkn, self.current_node)
-        self.tknzr.advance()
+        self._insert_current_token()
 
         if self.cur_tkn.text == " . ":
-            # do xxx.xxx()
-            _ = self._copy_element(self.cur_tkn, self.current_node)
-            self.tknzr.advance()
-
-            # eat subroutineName, and advance (to '(')
-            _ = self._copy_element(self.cur_tkn, self.current_node)
-            self.tknzr.advance()
-
+            self._insert_current_token() # do xxx.xxx()
+            self._insert_current_token() # eat subroutineName
 
         # eat the '(' and compile the expression list (if there is one)
-        _ = self._copy_element(self.cur_tkn, self.current_node)
-        self.tknzr.advance()
+        self._insert_current_token()
         self.compile_expressison_list()
 
         # eat the closing ')'
@@ -308,7 +297,8 @@ class CompilationEngine():
         # eat the terminating ';'
         _ = self._copy_element(self.cur_tkn, do_statement)
         self.tknzr.advance()
-        self.current_node = stmts_node
+
+        self.current_node = parent_on_entry
 
     def compile_return(self):
         """ Compiles a 'return' statement """
@@ -325,16 +315,17 @@ class CompilationEngine():
 
     def compile_expression(self):
         """ Compiles an expression """
+        parent_on_entry = self.current_node
 
         self.current_node = ET.SubElement(self.current_node, 'expression')
-
         self.compile_term()
 
 
         while self.cur_tkn.text in [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]:
-            _ = self._copy_element(self.cur_tkn, self.current_node)
-            self.tknzr.advance()
+            self._insert_current_token()
             self.compile_term()
+
+        self.current_node = parent_on_entry
 
 
 
@@ -344,9 +335,12 @@ class CompilationEngine():
         If the current token is an identifier, the routines must distinguish between a variable, an array entry, or a
         subroutine call. A single lookahead token (which may be one of '[', '(', or '.') suffices to distinguish
         between the possibilities. Any other token is not part of this term and should not be advanced over. """
+        parent_on_entry = self.current_node
+
         term_node = ET.SubElement(self.current_node, 'term')
         tkn_tag = self.cur_tkn.tag
         tkn_txt = self.cur_tkn.text
+
         if tkn_tag in ["integerConstant", "keyword", "stringConstant"]:
             # term -> integerConstant | stringConstant | keywordConstant
             _ = self._copy_element(self.cur_tkn, term_node)
@@ -423,6 +417,7 @@ class CompilationEngine():
                 #logging.warning("adding element: {}".format(tkn_now.text))
                 _ = self._copy_element(tkn_now, term_node)
 
+        self.current_node = parent_on_entry
 
     def compile_expressison_list(self):
         """ Compiles a (possibly empty) comma-separated list of expressions """
@@ -430,19 +425,22 @@ class CompilationEngine():
 
         if self.cur_tkn.text == ' ) ':
             expression_list_node.text = "\n"
-            # This is an expression-less expressionList
             return
 
+        parent_on_entry = expression_list_node
+        self.current_node = expression_list_node
         while True:
-            self.current_node = expression_list_node
+
             self.compile_expression()
 
             if self.cur_tkn.text == ' , ':
-
-                _ = self._copy_element(self.cur_tkn, expression_list_node)
-                self.tknzr.advance()
+                self._insert_current_token()
             else:
                 break
+
+        self.current_node = parent_on_entry
+
+
 
 
 def stringify_xml(elem):
