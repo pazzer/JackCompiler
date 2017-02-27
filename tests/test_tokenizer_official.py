@@ -1,11 +1,14 @@
 __author__ = 'paulpatterson'
 
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
 from pathlib import Path
 import os
-
 import unittest
+
+from JackAnalyzer.Tokenizer import Tokenizer
+from JackAnalyzer.CompilationEngine import stringify_xml
+
+from tests.globals import PROJ_10_DIR
 
 class OfficialTokenizerTests(unittest.TestCase):
 

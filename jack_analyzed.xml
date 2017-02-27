@@ -1,12 +1,12 @@
 <?xml version="1.0" ?>
 <class>
     <keyword> class </keyword>
-    <identifier> Main </identifier>
+    <identifier> Test </identifier>
     <symbol> { </symbol>
     <subroutineDec>
         <keyword> method </keyword>
         <keyword> void </keyword>
-        <identifier> Main </identifier>
+        <identifier> dispose </identifier>
         <symbol> ( </symbol>
         <parameterList>
 </parameterList>
@@ -16,32 +16,22 @@
             <statements>
                 <doStatement>
                     <keyword> do </keyword>
-                    <identifier> Output </identifier>
+                    <identifier> square </identifier>
                     <symbol> . </symbol>
-                    <identifier> printInt </identifier>
+                    <identifier> dispose </identifier>
                     <symbol> ( </symbol>
                     <expressionList>
-                        <expression>
-                            <term>
-                                <identifier> current </identifier>
-                                <symbol> . </symbol>
-                                <identifier> getData </identifier>
-                                <symbol> ( </symbol>
-                                <expressionList>
-                                    <expression>
-                                        <term>
-                                            <integerConstant> 99 </integerConstant>
-                                        </term>
-                                    </expression>
-                                </expressionList>
-                                <symbol> ) </symbol>
-                            </term>
-                        </expression>
-                    </expressionList>
+</expressionList>
                     <symbol> ) </symbol>
                     <symbol> ; </symbol>
                 </doStatement>
+                <returnStatement>
+                    <keyword> return </keyword>
+                    <symbol> ; </symbol>
+                </returnStatement>
             </statements>
+            <symbol> } </symbol>
         </subroutineBody>
     </subroutineDec>
+    <symbol> } </symbol>
 </class>

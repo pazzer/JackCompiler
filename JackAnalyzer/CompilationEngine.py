@@ -3,6 +3,7 @@ __author__ = 'paulpatterson'
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from pathlib import Path
+import logging
 
 class CompilationEngine():
 
@@ -10,13 +11,15 @@ class CompilationEngine():
         """ Creates a new compilation engine with the given input and output. The next routine called must be
         compile_class """
         self.tknzr = tokenizer
-        self.xml_tree = None
-        self.current_node = None
+        self.class_node = None
+        self.xml_tree = ET.ElementTree()
         self.output_file_path = output_file_path
 
     def compile(self):
         self.tknzr.advance()
         self.compile_class()
+        with open(self.output_file_path.as_posix(), "w") as outfile:
+            outfile.write(stringify_xml(self.xml_tree.getroot()))
 
     @staticmethod
     def _copy_element(element, parent):
@@ -32,14 +35,15 @@ class CompilationEngine():
         if self.cur_tkn.text != " class ":
             return
 
-        # add root node
-        self.xml_tree = ET.Element("class")
-        class_node = self.xml_tree
+        # add root node ('class')
+        class_node = ET.Element("class")
+        self.xml_tree._setroot(class_node)
+
+        #class_node = ET.SubElement(self.xml_tree.getroot(), 'class')
         _ = self._copy_element(self.cur_tkn, parent=class_node)
         self.tknzr.advance()
 
         # className node
-
         _ = self._copy_element(self.cur_tkn, parent=class_node)
         self.tknzr.advance()
 
@@ -54,16 +58,12 @@ class CompilationEngine():
         self.compile_subroutine_dec()
 
         # the closing '}'
-        #_ = self._copy_element(self.cur_tkn, class_node)
+        _ = self._copy_element(self.cur_tkn, class_node)
 
     @property
     def cur_tkn(self):
         return self.tknzr.current_token
 
-    def write_tree(self, write_path=Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/xml_snippets/output.xml")):
-        xml = stringify_xml(self.xml_tree)
-        with open(write_path.as_posix(), 'w') as outfile:
-            outfile.write(xml)
 
     def compile_class_var_dec(self):
         """ Compiles a static variable declaration, or a field declaration """
@@ -163,6 +163,7 @@ class CompilationEngine():
     def compile_subroutine_body(self):
         """ Compiles a subroutine's body """
         assert self.cur_tkn.text == ' { ', "expected ' { ' got '{}'".format(self.cur_tkn.text)
+        subroutine_body = self.current_node
         _ = self._copy_element(self.cur_tkn, self.current_node)
         self.tknzr.advance()
 
@@ -170,6 +171,9 @@ class CompilationEngine():
 
 
         self.compile_statements()
+
+        _ = self._copy_element(self.cur_tkn, subroutine_body)
+
 
 
     def compile_var_dec(self):
@@ -213,6 +217,7 @@ class CompilationEngine():
 
         Note: There is no compile_statement method
         """
+        old_node = self.current_node
         self.current_node = ET.SubElement(self.current_node, 'statements')
 
         while self.cur_tkn.text in [" do ", " while ", " if ", " let ", " return "]:
@@ -230,7 +235,8 @@ class CompilationEngine():
             else:
                 break
 
-            self.tknzr.advance()
+            #self.tknzr.advance()
+        self.current_node = old_node
 
 
     def compile_let(self):
@@ -247,6 +253,7 @@ class CompilationEngine():
 
     def compile_do(self):
         """ Compiles a 'do' statement """
+        stmts_node = self.current_node
         do_statement  = ET.SubElement(self.current_node, 'doStatement')
         self.current_node = do_statement
 
@@ -282,16 +289,28 @@ class CompilationEngine():
         # eat the terminating ';'
         _ = self._copy_element(self.cur_tkn, do_statement)
         self.tknzr.advance()
+        self.current_node = stmts_node
 
     def compile_return(self):
         """ Compiles a 'return' statement """
-        pass
+        return_statement = ET.SubElement(self.current_node, 'returnStatement')
+        _ = self._copy_element(self.cur_tkn, return_statement)
+        self.tknzr.advance()
+
+        if self.cur_tkn.text == " ; ":
+            _ = self._copy_element(self.cur_tkn, return_statement)
+        else:
+            pass
+
+        self.tknzr.advance()
 
     def compile_expression(self):
         """ Compiles an expression """
+
         self.current_node = ET.SubElement(self.current_node, 'expression')
 
         self.compile_term()
+
 
         while self.cur_tkn.text in [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]:
             _ = self._copy_element(self.cur_tkn, self.current_node)
@@ -325,9 +344,15 @@ class CompilationEngine():
             # term -> '(' expression ')'
             _ = self._copy_element(self.cur_tkn, term_node)
             self.tknzr.advance()
+            old_node = self.current_node
+            self.current_node = term_node
             self.compile_expression()
+            self.current_node = term_node
+
             # consume the closing paren
+            assert self.cur_tkn.text == " ) ", "wrong! current token is not closing paren ' ) '"
             _ = self._copy_element(self.cur_tkn, term_node)
+            self.current_node = old_node
             self.tknzr.advance()
 
         elif tkn_tag == 'identifier':
@@ -344,6 +369,7 @@ class CompilationEngine():
                 self.tknzr.advance()
                 self.current_node = term_node
                 self.compile_expression()
+                self.current_node = term_node
                 _ = self._copy_element(self.cur_tkn, term_node) # ']'
                 self.tknzr.advance()
 
@@ -375,7 +401,9 @@ class CompilationEngine():
 
             else:
                 # term -> varName
+                #logging.warning("adding element: {}".format(tkn_now.text))
                 _ = self._copy_element(tkn_now, term_node)
+
 
     def compile_expressison_list(self):
         """ Compiles a (possibly empty) comma-separated list of expressions """
@@ -391,7 +419,7 @@ class CompilationEngine():
             self.compile_expression()
 
             if self.cur_tkn.text == ' , ':
-                log.warning("detecting another expression...")
+
                 _ = self._copy_element(self.cur_tkn, expression_list_node)
                 self.tknzr.advance()
             else:

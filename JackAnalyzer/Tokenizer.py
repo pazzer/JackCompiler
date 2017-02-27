@@ -3,6 +3,7 @@ __author__ = 'paulpatterson'
 from collections import namedtuple
 import re
 import xml.etree.ElementTree as ET
+import logging
 
 SYMBOLS = "{ } ( ) [ ] . , ; + - * / & | < > = ~"
 KEYWORDS = "class constructor function method field static var int char boolean void true false null this let do if \

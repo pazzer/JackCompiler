@@ -9,9 +9,10 @@ from xml.dom import minidom
 from pathlib import Path
 import sys
 import os
+from JackAnalyzer.Tokenizer import Tokenizer
+from JackAnalyzer.CompilationEngine import CompilationEngine
 
-from JackAnalyzer import Tokenizer, CompilationEngine
-
+JACK_ANALYZER_ROOT = "/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer"
 
 class JackAnalyzer():
 
@@ -34,11 +35,19 @@ class JackAnalyzer():
                         self.jack_file_paths.append(child)
 
     @classmethod
+    def create_outfile_at_path(cls, path):
+        with open(path.as_posix()) as _:
+            pass
+
+    @classmethod
     def analyzer_for_snippet(cls, jack_snippet, user_defined_outfile_path=None):
         analyzer = cls()
         analyzer.jack_snippet = jack_snippet
         if user_defined_outfile_path is None:
-            analyzer.outfile_path = Path(os.path.join(os.getcwd(), "jack_analyzed.xml"))
+            user_defined_outfile_path = Path(os.path.join(JACK_ANALYZER_ROOT, "jack_analyzed.xml"))
+            if not user_defined_outfile_path.exists():
+                JackAnalyzer.create_outfile_at_path(user_defined_outfile_path)
+            analyzer.outfile_path = user_defined_outfile_path
         else:
             analyzer.outfile_path = user_defined_outfile_path
         return analyzer
