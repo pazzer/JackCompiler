@@ -11,21 +11,37 @@ class CompilationEngine():
         """ Creates a new compilation engine with the given input and output. The next routine called must be
         compile_class """
         self.tknzr = tokenizer
-        self.class_node = None
+        self.current_node = None
         self.xml_tree = ET.ElementTree()
         self.output_file_path = output_file_path
+        self._stashed_parent = None
 
     def compile(self):
         self.tknzr.advance()
         self.compile_class()
         with open(self.output_file_path.as_posix(), "w") as outfile:
             outfile.write(stringify_xml(self.xml_tree.getroot()))
-
+    #
     @staticmethod
     def _copy_element(element, parent):
         sub_element = ET.SubElement(parent, element.tag)
         sub_element.text = element.text
         return sub_element
+
+
+    # def _insert_element(self, element, parent, advance=True):
+    #     sub_element = ET.SubElement(parent, element.tag)
+    #     sub_element.text = element.text
+    #     if advance:
+    #         self.tknzr.advance()
+    #     return  sub_element
+
+    def _insert_current_token(self, parent=None, advance=True):
+        parent = self.current_node if parent is None else parent
+        sub_element = ET.SubElement(parent, self.cur_tkn.tag)
+        sub_element.text = self.cur_tkn.text
+        if advance:
+            self.tknzr.advance()
 
     def compile_class(self):
         """ Compiles a complete class
@@ -36,29 +52,26 @@ class CompilationEngine():
             return
 
         # add root node ('class')
-        class_node = ET.Element("class")
-        self.xml_tree._setroot(class_node)
+        self.current_node = ET.Element("class")
+        self.xml_tree._setroot(self.current_node)
 
-        #class_node = ET.SubElement(self.xml_tree.getroot(), 'class')
-        _ = self._copy_element(self.cur_tkn, parent=class_node)
-        self.tknzr.advance()
+        # kw -> 'class'
+        self._insert_current_token()
 
-        # className node
-        _ = self._copy_element(self.cur_tkn, parent=class_node)
-        self.tknzr.advance()
+        # id -> 'className'
+        self._insert_current_token()
 
-        # expecting to see '{'
-        _ = self._copy_element(self.cur_tkn, parent=class_node)
-        self.tknzr.advance()
+        # symbol -> '{' (opens the class body)
+        self._insert_current_token()
 
-        self.current_node = class_node
+        # zero or more varDecs
+        # ???
 
-        # zero or more varDecs followed by zero or more subroutineDecs
-        # self.compile_class_var_dec()
+        # zero or more subroutineDecs
         self.compile_subroutine_dec()
 
-        # the closing '}'
-        _ = self._copy_element(self.cur_tkn, class_node)
+        # symbol -> '}' (closes the class body)
+        self._insert_current_token()
 
     @property
     def cur_tkn(self):
@@ -105,6 +118,7 @@ class CompilationEngine():
 
     def compile_subroutine_dec(self):
         """ Compiles a complete method, function, or constructor """
+        parent_on_entry = self.current_node
 
         if self.cur_tkn.text not in [" constructor ", " function ", " method "]:
             return False
@@ -139,6 +153,8 @@ class CompilationEngine():
         self.current_node = subroutine_body
         self.compile_subroutine_body()
 
+        self.current_node = parent_on_entry
+
 
     def compile_parameter_list(self):
         """ Compiles a (possibly empty) parameter list. Does not handle the enclosing '()' """
@@ -149,8 +165,7 @@ class CompilationEngine():
                 break
 
             # type
-            _ = self._copy_element(self.cur_tkn, self.current_node)
-            self.tknzr.advance()
+            self._insert_current_token()
 
             # varName
             _ = self._copy_element(self.cur_tkn, self.current_node)
