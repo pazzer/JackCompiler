@@ -346,16 +346,9 @@ class CompilationEngine():
 
         elif tkn_txt == " ( ":
             # term -> '(' expression ')'
-            self._insert_current_token()
-
-            old_node = self.current_node
+            self._insert_current_token() # '('
             self.compile_expression()
-
-            # consume the closing paren
-            assert self.cur_tkn.text == " ) ", "Ooops! current token is not closing paren ' ) '"
-            _ = self._copy_element(self.cur_tkn, term_node)
-            self.current_node = old_node
-            self.tknzr.advance()
+            self._insert_current_token() # ')'
 
         elif tkn_tag == 'identifier':
             # need to lookahead
@@ -370,32 +363,16 @@ class CompilationEngine():
                 self.compile_expression()
                 self._insert_current_token() # ']'
 
-
-
             elif tkn_nxt.text == ' ( ' or tkn_nxt.text == ' . ':
-
                 _ = self._copy_element(tkn_now, term_node)  # identifier
 
                 if self.cur_tkn.text == " . ":
+                    self._insert_current_token() # '.'
+                    self._insert_current_token() # subroutineName
 
-                    _ = self._copy_element(self.cur_tkn, term_node)
-                    self.tknzr.advance()
-
-                    # eat subroutineName, and advance (to '(')
-                    _ = self._copy_element(self.cur_tkn, term_node)
-                    self.tknzr.advance()
-
-
-                # eat the '(' and compile the expression list (if there is one)
-                _ = self._copy_element(self.cur_tkn, term_node)
-                self.tknzr.advance()
-                self.current_node = term_node
+                self._insert_current_token() # '( '
                 self.compile_expressison_list()
-
-                # eat the closing ')'
-                _ = self._copy_element(self.cur_tkn, term_node)
-                self.tknzr.advance()
-
+                self._insert_current_token() # ')'
 
             else:
                 # term -> varName
