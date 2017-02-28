@@ -2,7 +2,8 @@ __author__ = 'paulpatterson'
 
 import xml.etree.ElementTree as ET
 import unittest
-from pathlib import Path
+
+from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
 
 from JackAnalyzer.JackAnalyzer import JackAnalyzer
 from JackAnalyzer.CompilationEngine import stringify_xml
@@ -86,6 +87,7 @@ def moderate_do():
 
     return wrapped_snippet, ET.fromstring(wrapped_xml)
 
+
 def simple_do():
     snippet = \
 """
@@ -132,6 +134,7 @@ def simple_do():
     wrapped_xml = XML_CLASS_WRAPPER.format(analyzed)
 
     return wrapped_snippet, ET.fromstring(wrapped_xml)
+
 
 def complex_do():
     snippet = \
@@ -1172,8 +1175,7 @@ def test_comments():
 
     return wrapped_snippet, ET.fromstring(wrapped_xml)
 
-ACTUAL_COMPARE = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/actual.txt")
-EXPECTED_COMPARE = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/expected.txt")
+
 
 class CustomAnalyzerTests(unittest.TestCase):
 

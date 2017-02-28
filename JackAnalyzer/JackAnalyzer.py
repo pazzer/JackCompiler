@@ -72,7 +72,7 @@ class JackAnalyzer():
             resulting_xml = []
             for path in self.jack_file_paths:
                 tknzr = Tokenizer(jack_filepath=path)
-                self.outfile_path = path.with_suffix("xml")
+                self.outfile_path = path.with_suffix(".xml")
                 self.compilation_engine = CompilationEngine(tokenizer=tknzr, output_file_path=self.outfile_path)
                 self.compilation_engine.compile()
                 if return_results:

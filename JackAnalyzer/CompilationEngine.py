@@ -211,7 +211,7 @@ class CompilationEngine():
         self._insert_current_token()
 
         self._insert_current_token() # varName
-        if self.cur_tkn.text == '[':
+        if self.cur_tkn.text == ' [ ':
             self._insert_current_token() # ' [ '
             self.compile_expression()
             assert self.cur_tkn.text == ' ] ', "expected ']', got '{}'".format(self.cur_tkn.text)
@@ -236,23 +236,25 @@ class CompilationEngine():
         assert self.cur_tkn.text == ' if ', "expected 'if', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # 'if'
 
-        assert self.cur_tkn.text == ' ( ', "expected '(', got '{}'".format(self.cur_tkn.text)
+        #assert self.cur_tkn.text == ' ( ', "expected '(', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # '('
 
         self.compile_expression()
 
-        assert self.cur_tkn.text == ' ) ', "expected ')', got '{}'".format(self.cur_tkn.text)
+        #assert self.cur_tkn.text == ' ) ', "expected ')', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # ')'
 
-        assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
+        #assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # '{'
 
         self.compile_statements()
 
-        assert self.cur_tkn.text == ' } ', "expected '}', got '{}'".format(self.cur_tkn.text)
+        #assert self.cur_tkn.text == ' } ', "expected '}', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # '}'
 
         if self.cur_tkn.text == ' else ':
+            self._insert_current_token()
+
             assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
             self._insert_current_token() # '{'
 

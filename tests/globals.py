@@ -1,5 +1,6 @@
 __author__ = 'paulpatterson'
 
+from pathlib import Path
 
 PROJ_10_DIR = "/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/nand2tetris/projects/10/"
 
@@ -21,3 +22,6 @@ class Test {{
     {0}
 }}
 """
+
+ACTUAL_COMPARE = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/actual.txt")
+EXPECTED_COMPARE = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/expected.txt")
