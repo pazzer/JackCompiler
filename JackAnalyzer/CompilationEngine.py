@@ -49,9 +49,14 @@ class CompilationEngine():
         self._insert_current_token() # 'class'
         self._insert_current_token() # className
         self._insert_current_token() # '{'
-        # zero or more varDecs
-        # ???
-        self.compile_subroutine_dec()
+
+
+        while self.cur_tkn.text in [" static ", " field "]:
+            self.compile_class_var_dec()
+
+        while self.cur_tkn.text in [" constructor ", " function ", " method "]:
+            self.compile_subroutine_dec()
+
         self._insert_current_token() # '}'
 
     @property
@@ -60,40 +65,26 @@ class CompilationEngine():
 
     def compile_class_var_dec(self):
         """ Compiles a static variable declaration, or a field declaration """
-        if self.cur_tkn.text not in ["static", "field"]:
+        if self.cur_tkn.text not in [" static ", " field "]:
+            logging.warning(self.cur_tkn.text)
             return
 
+        parent_node = self.current_node
+
         # insert the 'classVarDec' node and add its kind (field|static)
-        class_var_dec_node = ET.SubElement(self.current_node, "classVarDec")
-        _ = self._copy_element(self.cur_tkn, parent=class_var_dec_node)
-        self.tknzr.advance()
+        self.current_node = ET.SubElement(self.current_node, "classVarDec")
 
-        # handling 'type'
-        type_node = ET.SubElement(class_var_dec_node, 'type')
-        parent_node = type_node
-        if self.cur_tkn.text not in ["int", "char", "boolean"]:
-            class_name_node = ET.SubElement(type_node, "className")
-            parent_node = class_name_node
-        _ = self._copy_element(self.cur_tkn, parent=parent_node)
-        self.tknzr.advance()
+        self._insert_current_token() # 'field' | 'static'
+        self._insert_current_token() # type
+        self._insert_current_token() # varName
 
-        # handling one or more 'varName' declarations
+        while self.cur_tkn.text == " , ":
+                self._insert_current_token() # ' , '
+                self._insert_current_token() # varName
 
-        while True:
-            # extract the variable name
-            var_name_node = ET.SubElement(class_var_dec_node, 'varName')
-            _ = self._copy_element(self.cur_tkn, parent=var_name_node)
-            self.tknzr.advance()
-            if self.cur_tkn.text == ",":
-                # extract the delimiting comma
-                _ = self._copy_element(self.cur_tkn, parent=class_var_dec_node)
-                self.tknzr.advance()
-            else:
-                break
+        self._insert_current_token() # ' ; '
 
-        # add the terminating ';'
-        _ = self._copy_element(self.cur_tkn, parent=class_var_dec_node)
-        self.tknzr.advance()
+        self.current_node = parent_node
 
     def compile_subroutine_dec(self):
         """ Compiles a complete method, function, or constructor """
@@ -123,10 +114,7 @@ class CompilationEngine():
         self.current_node = ET.SubElement(self.current_node, "parameterList")
         self.current_node.text = "\n"
 
-        while True:
-
-            if self.cur_tkn.text == " ) ":
-                break
+        while self.cur_tkn.text != " ) ":
 
             self._insert_current_token() # type (char, int, ...)
             self._insert_current_token() # varName
@@ -216,14 +204,25 @@ class CompilationEngine():
 
     def compile_while(self):
         """ Compiles a 'while' statement """
-        pass
+        parent_node = self.current_node
+
+        self.current_node = ET.SubElement(self.current_node, 'whileStatement')
+
+        self._insert_current_token() # '('
+        self.compile_expression()
+        self._insert_current_token() # ')'
+
+        self._insert_current_token() # '{'
+        self.compile_statements()
+        self._insert_current_token() # '}'
+
+        self.current_node = parent_node
 
     def compile_do(self):
         """ Compiles a 'do' statement """
         parent_node = self.current_node
 
-        do_statement = ET.SubElement(self.current_node, 'doStatement')
-        self.current_node = do_statement
+        self.current_node = ET.SubElement(self.current_node, 'doStatement')
 
         self._insert_current_token() # 'do'.
         self.compile_term() # term will 'expand' to 'subroutineCall'

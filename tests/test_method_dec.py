@@ -298,6 +298,94 @@ def severe_do():
 
     return wrapped_snippet, ET.fromstring(wrapped_xml)
 
+def non_void_return():
+    snippet = \
+"""
+   constructor Square new(int Ax, int Ay, int Asize) {
+      do draw();
+      return this;
+   }
+"""
+    analyzed = \
+"""
+ <subroutineDec>
+    <keyword> constructor </keyword>
+    <identifier> Square </identifier>
+    <identifier> new </identifier>
+    <symbol> ( </symbol>
+    <parameterList>
+      <keyword> int </keyword>
+      <identifier> Ax </identifier>
+      <symbol> , </symbol>
+      <keyword> int </keyword>
+      <identifier> Ay </identifier>
+      <symbol> , </symbol>
+      <keyword> int </keyword>
+      <identifier> Asize </identifier>
+    </parameterList>
+    <symbol> ) </symbol>
+    <subroutineBody>
+      <symbol> { </symbol>
+      <statements>
+        <doStatement>
+          <keyword> do </keyword>
+          <identifier> draw </identifier>
+          <symbol> ( </symbol>
+          <expressionList>
+</expressionList>
+          <symbol> ) </symbol>
+          <symbol> ; </symbol>
+        </doStatement>
+        <returnStatement>
+          <keyword> return </keyword>
+          <expression>
+            <term>
+              <keyword> this </keyword>
+            </term>
+          </expression>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
+      <symbol> } </symbol>
+    </subroutineBody>
+  </subroutineDec>
+"""
+
+    wrapped_snippet = SNIPPET_CLASS_WRAPPER.format(snippet)
+    wrapped_xml = XML_CLASS_WRAPPER.format(analyzed)
+
+    return wrapped_snippet, ET.fromstring(wrapped_xml)
+
+def class_level_vars():
+    snippet = \
+"""
+   field Square square, counter;
+   field int direction;
+
+"""
+
+    analyzed = \
+"""
+ <classVarDec>
+    <keyword> field </keyword>
+    <identifier> Square </identifier>
+    <identifier> square </identifier>
+    <symbol> , </symbol>
+    <identifier> counter </identifier>
+    <symbol> ; </symbol>
+  </classVarDec>
+  <classVarDec>
+    <keyword> field </keyword>
+    <keyword> int </keyword>
+    <identifier> direction </identifier>
+    <symbol> ; </symbol>
+  </classVarDec>
+"""
+
+    wrapped_snippet = SNIPPET_CLASS_WRAPPER.format(snippet)
+    wrapped_xml = XML_CLASS_WRAPPER.format(analyzed)
+
+    return wrapped_snippet, ET.fromstring(wrapped_xml)
 
 
 ACTUAL_COMPARE = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/actual.txt")
@@ -336,4 +424,12 @@ class CustomAnalyzerTests(unittest.TestCase):
 
     def test_severe_do(self):
         actual_string, expected_string = self._prepare_test(*severe_do())
+        self.assertMultiLineEqual(actual_string, expected_string)
+
+    def test_return(self):
+        actual_string, expected_string = self._prepare_test(*non_void_return())
+        self.assertMultiLineEqual(actual_string, expected_string)
+
+    def test_two_var_dec(self):
+        actual_string, expected_string = self._prepare_test(*class_level_vars())
         self.assertMultiLineEqual(actual_string, expected_string)
