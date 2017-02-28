@@ -3,6 +3,7 @@ import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import os
+import logging
 
 from JackAnalyzer.Tokenizer import Tokenizer
 
@@ -137,4 +138,21 @@ class CustomTokenizerTests(unittest.TestCase):
         with self.assertRaises(AssertionError):
             tokenizer.keyword()
         self.assertTrue(tokenizer.int_val() == 12, "Expected current_token to be of type 'int_const'")
+
+    def test_handling_comments(self):
+        jack_snippet = """
+        class Main { // Ignore this...
+            field int numerator, denominator; // ... and this!
+        }
+        """
+        expected = [("keyword", " class "), ("identifier", " Main "), ("symbol", " { "), ("keyword", " field "),
+                    ("keyword", " int "), ("identifier", " numerator "), ("symbol", " , "), ("identifier", " denominator "),
+                    ("symbol", " ; "), ("symbol", " } ")]
+
+        tokenizer = Tokenizer(jack_code=jack_snippet)
+        tokenizer.advance() # ...arrives at 'class'
+        tokenizer.advance() # ...eats 'class', now at 'Main'
+        tokenizer.advance() # ...eats 'Main', now at '{'
+        tokenizer.advance() # ...eats 'Main', ignores comment, now at 'field'
+        self.assertTrue(tokenizer.current_token.text == " field ")
 

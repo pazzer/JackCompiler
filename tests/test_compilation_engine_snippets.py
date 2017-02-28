@@ -1148,7 +1148,7 @@ def test_comments():
     snippet = \
 """
    field Square square; // Comment
-   field int direction;
+   field int direction; // Another Comment
 """
 
     analyzed = \
