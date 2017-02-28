@@ -205,6 +205,7 @@ def complex_do():
 
     return wrapped_snippet, ET.fromstring(wrapped_xml)
 
+
 def severe_do():
     snippet = \
 """
@@ -298,6 +299,7 @@ def severe_do():
 
     return wrapped_snippet, ET.fromstring(wrapped_xml)
 
+
 def non_void_return():
     snippet = \
 """
@@ -356,6 +358,7 @@ def non_void_return():
 
     return wrapped_snippet, ET.fromstring(wrapped_xml)
 
+
 def class_level_vars():
     snippet = \
 """
@@ -387,6 +390,355 @@ def class_level_vars():
 
     return wrapped_snippet, ET.fromstring(wrapped_xml)
 
+
+def multiple_funcs():
+    snippet = \
+"""
+   constructor SquareGame new() {
+      return this;
+   }
+
+   method void dispose() {
+      do square.dispose();
+      do Memory.deAlloc(this);
+      return;
+   }
+"""
+    analyzed = \
+"""
+  <subroutineDec>
+    <keyword> constructor </keyword>
+    <identifier> SquareGame </identifier>
+    <identifier> new </identifier>
+    <symbol> ( </symbol>
+    <parameterList>
+</parameterList>
+    <symbol> ) </symbol>
+    <subroutineBody>
+      <symbol> { </symbol>
+      <statements>
+        <returnStatement>
+          <keyword> return </keyword>
+          <expression>
+            <term>
+              <keyword> this </keyword>
+            </term>
+          </expression>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
+      <symbol> } </symbol>
+    </subroutineBody>
+  </subroutineDec>
+  <subroutineDec>
+    <keyword> method </keyword>
+    <keyword> void </keyword>
+    <identifier> dispose </identifier>
+    <symbol> ( </symbol>
+    <parameterList>
+</parameterList>
+    <symbol> ) </symbol>
+    <subroutineBody>
+      <symbol> { </symbol>
+      <statements>
+        <doStatement>
+          <keyword> do </keyword>
+          <identifier> square </identifier>
+          <symbol> . </symbol>
+          <identifier> dispose </identifier>
+          <symbol> ( </symbol>
+          <expressionList>
+</expressionList>
+          <symbol> ) </symbol>
+          <symbol> ; </symbol>
+        </doStatement>
+        <doStatement>
+          <keyword> do </keyword>
+          <identifier> Memory </identifier>
+          <symbol> . </symbol>
+          <identifier> deAlloc </identifier>
+          <symbol> ( </symbol>
+          <expressionList>
+            <expression>
+              <term>
+                <keyword> this </keyword>
+              </term>
+            </expression>
+          </expressionList>
+          <symbol> ) </symbol>
+          <symbol> ; </symbol>
+        </doStatement>
+        <returnStatement>
+          <keyword> return </keyword>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
+      <symbol> } </symbol>
+    </subroutineBody>
+  </subroutineDec>
+"""
+
+    wrapped_snippet = SNIPPET_CLASS_WRAPPER.format(snippet)
+    wrapped_xml = XML_CLASS_WRAPPER.format(analyzed)
+
+    return wrapped_snippet, ET.fromstring(wrapped_xml)
+
+
+def let():
+    snippet = \
+"""
+constructor SquareGame new() {
+      let square = Square.new(0, 0, 30);
+      let direction = 0;
+      return this;
+   }
+"""
+
+    analyzed = \
+"""
+  <subroutineDec>
+    <keyword> constructor </keyword>
+    <identifier> SquareGame </identifier>
+    <identifier> new </identifier>
+    <symbol> ( </symbol>
+    <parameterList>
+</parameterList>
+    <symbol> ) </symbol>
+    <subroutineBody>
+      <symbol> { </symbol>
+      <statements>
+        <letStatement>
+          <keyword> let </keyword>
+          <identifier> square </identifier>
+          <symbol> = </symbol>
+          <expression>
+            <term>
+              <identifier> Square </identifier>
+              <symbol> . </symbol>
+              <identifier> new </identifier>
+              <symbol> ( </symbol>
+              <expressionList>
+                <expression>
+                  <term>
+                    <integerConstant> 0 </integerConstant>
+                  </term>
+                </expression>
+                <symbol> , </symbol>
+                <expression>
+                  <term>
+                    <integerConstant> 0 </integerConstant>
+                  </term>
+                </expression>
+                <symbol> , </symbol>
+                <expression>
+                  <term>
+                    <integerConstant> 30 </integerConstant>
+                  </term>
+                </expression>
+              </expressionList>
+              <symbol> ) </symbol>
+            </term>
+          </expression>
+          <symbol> ; </symbol>
+        </letStatement>
+        <letStatement>
+          <keyword> let </keyword>
+          <identifier> direction </identifier>
+          <symbol> = </symbol>
+          <expression>
+            <term>
+              <integerConstant> 0 </integerConstant>
+            </term>
+          </expression>
+          <symbol> ; </symbol>
+        </letStatement>
+        <returnStatement>
+          <keyword> return </keyword>
+          <expression>
+            <term>
+              <keyword> this </keyword>
+            </term>
+          </expression>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
+      <symbol> } </symbol>
+    </subroutineBody>
+  </subroutineDec>
+"""
+
+    wrapped_snippet = SNIPPET_CLASS_WRAPPER.format(snippet)
+    wrapped_xml = XML_CLASS_WRAPPER.format(analyzed)
+
+    return wrapped_snippet, ET.fromstring(wrapped_xml)
+
+
+def if_do():
+    snippet = \
+"""
+    method void moveSquare() {
+        if (direction = 1) { do square.moveUp(); }
+        if (direction = 2) { do square.moveDown(); }
+        if (direction = 3) { do square.moveLeft(); }
+        if (direction = 4) { do square.moveRight(); }
+        do Sys.wait(5);
+        return;
+    }
+"""
+    analyzed = \
+"""
+  <subroutineDec>
+    <keyword> method </keyword>
+    <keyword> void </keyword>
+    <identifier> moveSquare </identifier>
+    <symbol> ( </symbol>
+    <parameterList>
+    </parameterList>
+    <symbol> ) </symbol>
+    <subroutineBody>
+      <symbol> { </symbol>
+      <statements>
+        <ifStatement>
+          <keyword> if </keyword>
+          <symbol> ( </symbol>
+          <expression>
+            <term>
+              <identifier> direction </identifier>
+            </term>
+            <symbol> = </symbol>
+            <term>
+              <integerConstant> 1 </integerConstant>
+            </term>
+          </expression>
+          <symbol> ) </symbol>
+          <symbol> { </symbol>
+          <statements>
+            <doStatement>
+              <keyword> do </keyword>
+              <identifier> square </identifier>
+              <symbol> . </symbol>
+              <identifier> moveUp </identifier>
+              <symbol> ( </symbol>
+              <expressionList>
+              </expressionList>
+              <symbol> ) </symbol>
+              <symbol> ; </symbol>
+            </doStatement>
+          </statements>
+          <symbol> } </symbol>
+        </ifStatement>
+        <ifStatement>
+          <keyword> if </keyword>
+          <symbol> ( </symbol>
+          <expression>
+            <term>
+              <identifier> direction </identifier>
+            </term>
+            <symbol> = </symbol>
+            <term>
+              <integerConstant> 2 </integerConstant>
+            </term>
+          </expression>
+          <symbol> ) </symbol>
+          <symbol> { </symbol>
+          <statements>
+            <doStatement>
+              <keyword> do </keyword>
+              <identifier> square </identifier>
+              <symbol> . </symbol>
+              <identifier> moveDown </identifier>
+              <symbol> ( </symbol>
+              <expressionList>
+              </expressionList>
+              <symbol> ) </symbol>
+              <symbol> ; </symbol>
+            </doStatement>
+          </statements>
+          <symbol> } </symbol>
+        </ifStatement>
+        <ifStatement>
+          <keyword> if </keyword>
+          <symbol> ( </symbol>
+          <expression>
+            <term>
+              <identifier> direction </identifier>
+            </term>
+            <symbol> = </symbol>
+            <term>
+              <integerConstant> 3 </integerConstant>
+            </term>
+          </expression>
+          <symbol> ) </symbol>
+          <symbol> { </symbol>
+          <statements>
+            <doStatement>
+              <keyword> do </keyword>
+              <identifier> square </identifier>
+              <symbol> . </symbol>
+              <identifier> moveLeft </identifier>
+              <symbol> ( </symbol>
+              <expressionList>
+              </expressionList>
+              <symbol> ) </symbol>
+              <symbol> ; </symbol>
+            </doStatement>
+          </statements>
+          <symbol> } </symbol>
+        </ifStatement>
+        <ifStatement>
+          <keyword> if </keyword>
+          <symbol> ( </symbol>
+          <expression>
+            <term>
+              <identifier> direction </identifier>
+            </term>
+            <symbol> = </symbol>
+            <term>
+              <integerConstant> 4 </integerConstant>
+            </term>
+          </expression>
+          <symbol> ) </symbol>
+          <symbol> { </symbol>
+          <statements>
+            <doStatement>
+              <keyword> do </keyword>
+              <identifier> square </identifier>
+              <symbol> . </symbol>
+              <identifier> moveRight </identifier>
+              <symbol> ( </symbol>
+              <expressionList>
+              </expressionList>
+              <symbol> ) </symbol>
+              <symbol> ; </symbol>
+            </doStatement>
+          </statements>
+          <symbol> } </symbol>
+        </ifStatement>
+        <doStatement>
+          <keyword> do </keyword>
+          <identifier> Sys </identifier>
+          <symbol> . </symbol>
+          <identifier> wait </identifier>
+          <symbol> ( </symbol>
+          <expressionList>
+            <expression>
+              <term>
+                <integerConstant> 5 </integerConstant>
+              </term>
+            </expression>
+          </expressionList>
+          <symbol> ) </symbol>
+          <symbol> ; </symbol>
+        </doStatement>
+        <returnStatement>
+          <keyword> return </keyword>
+          <symbol> ; </symbol>
+        </returnStatement>
+      </statements>
+      <symbol> } </symbol>
+    </subroutineBody>
+  </subroutineDec>
+"""
 
 ACTUAL_COMPARE = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/actual.txt")
 EXPECTED_COMPARE = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/expected.txt")
@@ -432,4 +784,16 @@ class CustomAnalyzerTests(unittest.TestCase):
 
     def test_two_var_dec(self):
         actual_string, expected_string = self._prepare_test(*class_level_vars())
+        self.assertMultiLineEqual(actual_string, expected_string)
+
+    def test_two_funcs(self):
+        actual_string, expected_string = self._prepare_test(*multiple_funcs())
+        self.assertMultiLineEqual(actual_string, expected_string)
+
+    def test_let(self):
+        actual_string, expected_string = self._prepare_test(*let())
+        self.assertMultiLineEqual(actual_string, expected_string)
+
+    def test_if(self):
+        actual_string, expected_string = self._prepare_test(*let())
         self.assertMultiLineEqual(actual_string, expected_string)

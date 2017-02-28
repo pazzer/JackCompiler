@@ -196,7 +196,28 @@ class CompilationEngine():
 
     def compile_let(self):
         """ Compiles a 'let' statement """
-        pass
+        parent_node = self.current_node
+
+        self.current_node = ET.SubElement(parent_node, "letStatement")
+
+        assert self.cur_tkn.text == " let ", "expected 'let', got '{}'".format(self.cur_tkn.text)
+        self._insert_current_token()
+
+        self._insert_current_token() # varName
+        if self.cur_tkn.text == '[':
+            self._insert_current_token() # ' [ '
+            self.compile_expression()
+            assert self.cur_tkn.text == ' ] ', "expected ']', got '{}'".format(self.cur_tkn.text)
+            self._insert_current_token() # ' ] '
+
+        assert self.cur_tkn.text == ' = ', "expected '=', got '{}'".format(self.cur_tkn.text)
+        self._insert_current_token() # ' = '
+        self.compile_expression()
+
+        assert self.cur_tkn.text == ' ; ', "expected ';', got '{}'".format(self.cur_tkn.text)
+        self._insert_current_token() # ' ; '
+
+        self.current_node = parent_node
 
     def compile_if(self):
         """ Compiles an 'if' statement, possibly with a trailing 'else' clause """
