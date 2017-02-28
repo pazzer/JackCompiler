@@ -42,6 +42,7 @@ class Tokenizer():
             self._input = jack_code
         self.tokens = ET.Element("tokens")
         self._pos = 0
+        logging.warning(self._input)
 
 
     def tokenize(self):
@@ -117,16 +118,21 @@ class Tokenizer():
         """ Gets the next token from the input and makes it the current token. This method
         should only be called if hasMoreTokens() is true. Initially there is no current token. """
         jack_match = self._lookahead()
-        token_element = None
         if jack_match is not None:
 
             if jack_match.tag == "comment":
                 token_element = ET.Element(jack_match.tag)
+
             else:
                 token_element = ET.SubElement(self.tokens, jack_match.tag)
 
+
             token_element.text = " {} ".format(jack_match.text)
+            logging.warning(token_element.text)
+            logging.warning(jack_match.span)
+            old_pos = self._pos
             self._pos += (jack_match.span.end - jack_match.span.start)
+            logging.warning(self._input[old_pos:self._pos])
             return token_element
 
     def token_type(self):

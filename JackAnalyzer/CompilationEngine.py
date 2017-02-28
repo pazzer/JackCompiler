@@ -132,7 +132,10 @@ class CompilationEngine():
         self.current_node = ET.SubElement(self.current_node, 'subroutineBody')
 
         self._insert_current_token() # '{'
-        self.compile_var_dec()
+
+        while self.cur_tkn.text == " var ":
+            self.compile_var_dec()
+
         self.compile_statements()
         self._insert_current_token() # '}'
 
@@ -150,15 +153,19 @@ class CompilationEngine():
         # adding 'varDec' node
         self.current_node = ET.SubElement(self.current_node, "varDec")
 
+        assert self.cur_tkn.text == ' var ', "expected ' var ', got ' {} '".format(self.cur_tkn.text)
         self._insert_current_token() # 'var'
+        assert self.cur_tkn.tag in ['keyword', 'identifier'], "expected keyword or identifier, got ' {} '".format(self.cur_tkn.text)
         self._insert_current_token() # variable type (char, int...)
 
         while True:
 
+            assert self.cur_tkn.tag == "identifier", "expected keyword or identifier, got ' {} '".format(self.cur_tkn.text)
             self._insert_current_token() # variable name
 
             # adding ',' or ';'
             previous_token = self.cur_tkn
+            assert previous_token.text in [" ; ", " , "], "expected ' , ' or ' ; ', got {}".format(previous_token.text)
             self._insert_current_token()
 
             if previous_token.text == " ; ":
@@ -182,7 +189,7 @@ class CompilationEngine():
             if stmt_type == " do ":
                 self.compile_do()
             elif stmt_type == " while ":
-                self.compile()
+                self.compile_while()
             elif stmt_type == " if ":
                 self.compile_if()
             elif stmt_type == " let ":
@@ -221,13 +228,47 @@ class CompilationEngine():
 
     def compile_if(self):
         """ Compiles an 'if' statement, possibly with a trailing 'else' clause """
-        pass
+
+        parent_node = self.current_node
+
+        self.current_node = ET.SubElement(self.current_node, 'ifStatement')
+
+        assert self.cur_tkn.text == ' if ', "expected 'if', got '{}'".format(self.cur_tkn.text)
+        self._insert_current_token() # 'if'
+
+        assert self.cur_tkn.text == ' ( ', "expected '(', got '{}'".format(self.cur_tkn.text)
+        self._insert_current_token() # '('
+
+        self.compile_expression()
+
+        assert self.cur_tkn.text == ' ) ', "expected ')', got '{}'".format(self.cur_tkn.text)
+        self._insert_current_token() # ')'
+
+        assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
+        self._insert_current_token() # '{'
+
+        self.compile_statements()
+
+        assert self.cur_tkn.text == ' } ', "expected '}', got '{}'".format(self.cur_tkn.text)
+        self._insert_current_token() # '}'
+
+        if self.cur_tkn.text == ' else ':
+            assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
+            self._insert_current_token() # '{'
+
+            self.compile_statements()
+
+            assert self.cur_tkn.text == ' } ', "expected '}', got '{}'".format(self.cur_tkn.text)
+            self._insert_current_token() # '}'
+
+        self.current_node = parent_node
 
     def compile_while(self):
         """ Compiles a 'while' statement """
         parent_node = self.current_node
 
         self.current_node = ET.SubElement(self.current_node, 'whileStatement')
+        self._insert_current_token() # ' while '
 
         self._insert_current_token() # '('
         self.compile_expression()
@@ -355,7 +396,6 @@ class CompilationEngine():
                 break
 
         self.current_node = parent_on_entry
-
 
 
 
