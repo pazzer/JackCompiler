@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import logging
 
+OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
+
 class CompilationEngine():
 
     def __init__(self, tokenizer=None, output_file_path=None):
@@ -13,7 +15,6 @@ class CompilationEngine():
         self.current_node = None
         self.xml_tree = ET.ElementTree()
         self.output_file_path = output_file_path
-        self._stashed_parent = None
 
     def compile(self):
         self.tknzr.advance()
@@ -236,20 +237,20 @@ class CompilationEngine():
         assert self.cur_tkn.text == ' if ', "expected 'if', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # 'if'
 
-        #assert self.cur_tkn.text == ' ( ', "expected '(', got '{}'".format(self.cur_tkn.text)
+        assert self.cur_tkn.text == ' ( ', "expected '(', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # '('
 
         self.compile_expression()
 
-        #assert self.cur_tkn.text == ' ) ', "expected ')', got '{}'".format(self.cur_tkn.text)
+        assert self.cur_tkn.text == ' ) ', "expected ')', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # ')'
 
-        #assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
+        assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # '{'
 
         self.compile_statements()
 
-        #assert self.cur_tkn.text == ' } ', "expected '}', got '{}'".format(self.cur_tkn.text)
+        assert self.cur_tkn.text == ' } ', "expected '}', got '{}'".format(self.cur_tkn.text)
         self._insert_current_token() # '}'
 
         if self.cur_tkn.text == ' else ':
@@ -314,7 +315,8 @@ class CompilationEngine():
         self.current_node = ET.SubElement(self.current_node, 'expression')
         self.compile_term()
 
-        while self.cur_tkn.text in [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]:
+
+        while self.cur_tkn.text in OPERATORS:
             self._insert_current_token()
             self.compile_term()
 
