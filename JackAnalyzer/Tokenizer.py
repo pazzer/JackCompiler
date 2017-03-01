@@ -3,7 +3,6 @@ __author__ = 'paulpatterson'
 from collections import namedtuple
 import re
 import xml.etree.ElementTree as ET
-import logging
 
 SYMBOLS = "{ } ( ) [ ] . , ; + - * / & | < > = ~"
 KEYWORDS = "class constructor function method field static var int char boolean void true false null this let do if \
@@ -42,7 +41,6 @@ class Tokenizer():
             self._input = jack_code
         self.tokens = ET.Element("tokens")
         self._pos = 0
-        #logging.warning(self._input)
 
 
     def tokenize(self):
@@ -115,7 +113,6 @@ class Tokenizer():
         else:
             return None
 
-
     def has_more_tokens(self):
         """ Do we have more tokens in the input? """
         return self._lookahead() is not None
@@ -129,47 +126,6 @@ class Tokenizer():
             token_element.text = " {} ".format(jack_match.text)
             self._pos = jack_match.span.end
             return token_element
-
-    def token_type(self):
-        """ Returns the type of the current token: keyword, symbol, identifer, integerConstant, or stringConstant """
-        return self.current_token.tag
-
-    def keyword(self):
-        """ Returns the keyword which is the current token. Should be called only when tokenType() is keyword
-
-        Valid keywords: CLASS, METHOD, FUNCTION, CONSTRUCTOR, INT, BOOLEAN, CHAR, VOID, VAR, STATIC, FIELD, LET,
-        DO, IF, ELSE, WHILE, RETURN, TRUE, FALSE, NULL, THIS """
-        assert self.token_type() == "keyword", "called keyword() on token with type {}".format(self.token_type())
-        return self.current_token.text
-
-    def symbol(self):
-        """ Returns the character which is the current token. Should be called only when tokenType() is symbol
-
-        returns: Char """
-        assert self.token_type() == "symbol", "called symbol() on token with type {}".format(self.token_type())
-        return self.current_token.text
-
-    def identifier(self):
-        """Returns the identifier which is the current token. Should be called only when tokenType() is IDENTIFIER
-
-        returns: String """
-        assert self.token_type() == "identifier", "called identifier() on token with type {}".format(self.token_type())
-        return self.current_token.text
-
-    def int_val(self):
-        """ Returns the integer value of the current token. Should be called only when tokenType() is integerConstant
-
-        returns: Int """
-        assert self.token_type() == "integerConstant", "called int_val() on token with type {}".format(self.token_type())
-        return int(self.current_token.text)
-
-    def string_val(self):
-        """Returns the string value of the current token, without the double quotes. Should be called only when
-        tokenType() is stringConstant
-
-        returns: String """
-        assert self.token_type() == "stringConstant", "called string_val() on token with type {}".format(self.token_type())
-        return self.current_token.text
 
     def __str__(self):
         return "\n".join(["{}, {}".format(child.tag, child.text) for child in self.tokens])

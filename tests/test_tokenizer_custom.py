@@ -121,24 +121,6 @@ class CustomTokenizerTests(unittest.TestCase):
         tokenizer.advance()
         self.assertFalse(tokenizer.has_more_tokens(), "'has_more_tokens()' reporting True - expected False")
 
-
-    def test_keyword(self):
-        jack_snippet = "return 12"
-        tokenizer = Tokenizer(jack_code=jack_snippet)
-        tokenizer.advance()
-        with self.assertRaises(AssertionError):
-            tokenizer.identifier()
-        self.assertTrue(tokenizer.keyword() == " return ", "Expected current_token to be of type 'keyword'")
-
-    def test_int_val(self):
-        jack_snippet = "return 12"
-        tokenizer = Tokenizer(jack_code=jack_snippet)
-        tokenizer.advance()
-        tokenizer.advance()
-        with self.assertRaises(AssertionError):
-            tokenizer.keyword()
-        self.assertTrue(tokenizer.int_val() == 12, "Expected current_token to be of type 'int_const'")
-
     def test_handling_comments(self):
         jack_snippet = """
         class Main { // Ignore this...

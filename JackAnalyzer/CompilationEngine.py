@@ -7,7 +7,7 @@ import re
 
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
 
-TYPE_PATTERN = r" int | char | boolean | [a-zA-Z_][a-zA-Z0-9_]* | void "
+TYPE_PATTERN = r" int | char | boolean | [a-zA-Z_][a-zA-Z0-9_]* "
 
 
 class CompilationEngine():
@@ -17,6 +17,7 @@ class CompilationEngine():
         compile_class """
         self.tknzr = tokenizer
         self.current_node = None
+        self.parent_node = None
         self.xml_tree = ET.ElementTree()
         self.output_file_path = output_file_path
 
@@ -69,7 +70,7 @@ class CompilationEngine():
         self.current_node = ET.SubElement(self.current_node, "classVarDec")
 
         self._eat_keyword(["field", "static"])
-        self._eat(expected_pattern=TYPE_PATTERN)  # type
+        self._eat(expected_pattern=TYPE_PATTERN)
         self._eat_identifier()  # varName
 
         while self.cur_tkn.text == " , ":
@@ -89,8 +90,8 @@ class CompilationEngine():
 
         self.current_node = ET.SubElement(self.current_node, "subroutineDec")
 
-        self._eat_keyword(["constructor", "function", "method"])  # 'constructor'|'function'|'method'
-        self._eat(expected_pattern=TYPE_PATTERN)  # 'void'|type
+        self._eat_keyword(["constructor", "function", "method"])
+        self._eat(expected_pattern=TYPE_PATTERN + "| void ")
         self._eat_identifier()  # subroutineName
 
         self._eat_symbol("(")
@@ -110,7 +111,7 @@ class CompilationEngine():
 
         while self.cur_tkn.text != " ) ":
 
-            self._eat()  # type (char, int, ...)
+            self._eat(expected_pattern=TYPE_PATTERN)
             self._eat_identifier()  # varName
 
             if self.cur_tkn.text == " , ":
@@ -181,11 +182,10 @@ class CompilationEngine():
 
         parent_on_entry = self.current_node
 
-        # adding 'varDec' node
         self.current_node = ET.SubElement(self.current_node, "varDec")
 
         self._eat_keyword("var")
-        self._eat()
+        self._eat(expected_pattern=TYPE_PATTERN)
 
         while True:
 
@@ -276,8 +276,6 @@ class CompilationEngine():
     def compile_while(self):
         """ Compiles a 'while' statement """
         parent_node = self.current_node
-
-
         self.current_node = ET.SubElement(self.current_node, 'whileStatement')
 
         self._eat_keyword("while")
