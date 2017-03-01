@@ -3,8 +3,12 @@ __author__ = 'paulpatterson'
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import logging
+import re
 
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
+
+TYPE_PATTERN = r" int | char | boolean | [a-zA-Z_][a-zA-Z0-9_]* | void "
+
 
 class CompilationEngine():
 
@@ -28,13 +32,6 @@ class CompilationEngine():
         sub_element.text = element.text
         return sub_element
 
-    def _insert_current_token(self, parent=None, advance=True):
-        parent = self.current_node if parent is None else parent
-        sub_element = ET.SubElement(parent, self.cur_tkn.tag)
-        sub_element.text = self.cur_tkn.text
-        if advance:
-            self.tknzr.advance()
-
     def compile_class(self):
         """ Compiles a complete class
 
@@ -43,14 +40,12 @@ class CompilationEngine():
         if self.cur_tkn.text != " class ":
             return
 
-        # add root node ('class')
         self.current_node = ET.Element("class")
         self.xml_tree._setroot(self.current_node)
 
-        self._insert_current_token() # 'class'
-        self._insert_current_token() # className
-        self._insert_current_token() # '{'
-
+        self._eat_keyword("class")
+        self._eat_identifier()
+        self._eat_symbol("{")
 
         while self.cur_tkn.text in [" static ", " field "]:
             self.compile_class_var_dec()
@@ -58,7 +53,7 @@ class CompilationEngine():
         while self.cur_tkn.text in [" constructor ", " function ", " method "]:
             self.compile_subroutine_dec()
 
-        self._insert_current_token() # '}'
+        self._eat_symbol("}")
 
     @property
     def cur_tkn(self):
@@ -71,19 +66,17 @@ class CompilationEngine():
             return
 
         parent_node = self.current_node
-
-        # insert the 'classVarDec' node and add its kind (field|static)
         self.current_node = ET.SubElement(self.current_node, "classVarDec")
 
-        self._insert_current_token() # 'field' | 'static'
-        self._insert_current_token() # type
-        self._insert_current_token() # varName
+        self._eat_keyword(["field", "static"])
+        self._eat(expected_pattern=TYPE_PATTERN)  # type
+        self._eat_identifier()  # varName
 
         while self.cur_tkn.text == " , ":
-                self._insert_current_token() # ' , '
-                self._insert_current_token() # varName
+                self._eat_symbol(",")
+                self._eat_identifier()  # varName
 
-        self._insert_current_token() # ' ; '
+        self._eat_symbol(";")
 
         self.current_node = parent_node
 
@@ -96,13 +89,13 @@ class CompilationEngine():
 
         self.current_node = ET.SubElement(self.current_node, "subroutineDec")
 
-        self._insert_current_token() # 'constructor'|'function'|'method'
-        self._insert_current_token() # 'void'|type
-        self._insert_current_token() # subroutineName
+        self._eat_keyword(["constructor", "function", "method"])  # 'constructor'|'function'|'method'
+        self._eat(expected_pattern=TYPE_PATTERN)  # 'void'|type
+        self._eat_identifier()  # subroutineName
 
-        self._insert_current_token() # '('
+        self._eat_symbol("(")
         self.compile_parameter_list()
-        self._insert_current_token() # ')'
+        self._eat_symbol(")")
 
         self.compile_subroutine_body()
 
@@ -117,30 +110,67 @@ class CompilationEngine():
 
         while self.cur_tkn.text != " ) ":
 
-            self._insert_current_token() # type (char, int, ...)
-            self._insert_current_token() # varName
+            self._eat()  # type (char, int, ...)
+            self._eat_identifier()  # varName
 
             if self.cur_tkn.text == " , ":
-                self._insert_current_token() # ' , '
+                self._eat_symbol(",")
 
         self.current_node = parent_on_entry
 
     def compile_subroutine_body(self):
         """ Compiles a subroutine's body """
-        assert self.cur_tkn.text == ' { ', "expected ' { ' got '{}'".format(self.cur_tkn.text)
-
         parent_on_entry = self.current_node
         self.current_node = ET.SubElement(self.current_node, 'subroutineBody')
 
-        self._insert_current_token() # '{'
-
+        self._eat_symbol("{")
         while self.cur_tkn.text == " var ":
             self.compile_var_dec()
 
         self.compile_statements()
-        self._insert_current_token() # '}'
+        self._eat_symbol("}")
 
         self.current_node = parent_on_entry
+
+    def _eat_symbol(self, expected_value=None):
+        self.__validate_and_insert_current_token("symbol", expected_value)
+
+    def _eat_identifier(self, expected_value=None):
+        self.__validate_and_insert_current_token("identifier", expected_value)
+
+    def _eat_string_constant(self, expected_value=None):
+        self.__validate_and_insert_current_token("stringConstant", expected_value)
+
+    def _eat_integer_constant(self, expected_value=None):
+        self.__validate_and_insert_current_token("integerConstant", expected_value)
+
+    def _eat_keyword(self, expected_value=None):
+        self.__validate_and_insert_current_token("keyword", expected_value)
+
+    def _eat(self, expected_value=None, expected_pattern=None):
+        self.__validate_and_insert_current_token(expected_value=expected_value, expected_pattern=expected_pattern)
+
+    def __validate_and_insert_current_token(self, expected_type=None, expected_value=None, expected_pattern=None):
+        tkn_type = self.cur_tkn.tag
+        tkn_text = self.cur_tkn.text
+        if expected_type is not None:
+            assert tkn_type == expected_type, \
+                "unexpected token type; type of current token is '{}', not '{}'".format(tkn_type, expected_type)
+        if expected_value is not None:
+            try:
+                assert tkn_text == " " + expected_value + " ", \
+                    "unexpected value; value of current token is '{}' not '{}'".format(tkn_text, expected_value)
+            except TypeError:
+                assert tkn_text in [" " + v + " " for v in expected_value], \
+                    "unexpected value; value of current token '{}' is not in '{}'".format(tkn_text, expected_value)
+        if expected_pattern is not None:
+            regex = re.compile(expected_pattern)
+            assert regex.findall(tkn_text) is not None, \
+                "expected current token value to match pattern {}; it didn't.".format(expected_pattern)
+
+        sub_element = ET.SubElement(self.current_node, self.cur_tkn.tag)
+        sub_element.text = self.cur_tkn.text
+        self.tknzr.advance()
 
     def compile_var_dec(self):
         """ Compiles a 'var' declaration
@@ -154,20 +184,16 @@ class CompilationEngine():
         # adding 'varDec' node
         self.current_node = ET.SubElement(self.current_node, "varDec")
 
-        assert self.cur_tkn.text == ' var ', "expected ' var ', got ' {} '".format(self.cur_tkn.text)
-        self._insert_current_token() # 'var'
-        assert self.cur_tkn.tag in ['keyword', 'identifier'], "expected keyword or identifier, got ' {} '".format(self.cur_tkn.text)
-        self._insert_current_token() # variable type (char, int...)
+        self._eat_keyword("var")
+        self._eat()
 
         while True:
 
             assert self.cur_tkn.tag == "identifier", "expected keyword or identifier, got ' {} '".format(self.cur_tkn.text)
-            self._insert_current_token() # variable name
+            self._eat_identifier()  # variable name
 
-            # adding ',' or ';'
             previous_token = self.cur_tkn
-            assert previous_token.text in [" ; ", " , "], "expected ' , ' or ' ; ', got {}".format(previous_token.text)
-            self._insert_current_token()
+            self._eat_symbol([";", ","])
 
             if previous_token.text == " ; ":
                 break
@@ -208,22 +234,17 @@ class CompilationEngine():
 
         self.current_node = ET.SubElement(parent_node, "letStatement")
 
-        assert self.cur_tkn.text == " let ", "expected 'let', got '{}'".format(self.cur_tkn.text)
-        self._insert_current_token()
+        self._eat_keyword("let")
+        self._eat_identifier()  # varName
 
-        self._insert_current_token() # varName
         if self.cur_tkn.text == ' [ ':
-            self._insert_current_token() # ' [ '
+            self._eat_symbol("[")
             self.compile_expression()
-            assert self.cur_tkn.text == ' ] ', "expected ']', got '{}'".format(self.cur_tkn.text)
-            self._insert_current_token() # ' ] '
+            self._eat_symbol("]")
 
-        assert self.cur_tkn.text == ' = ', "expected '=', got '{}'".format(self.cur_tkn.text)
-        self._insert_current_token() # ' = '
+        self._eat_symbol("=")
         self.compile_expression()
-
-        assert self.cur_tkn.text == ' ; ', "expected ';', got '{}'".format(self.cur_tkn.text)
-        self._insert_current_token() # ' ; '
+        self._eat_symbol(";")
 
         self.current_node = parent_node
 
@@ -234,35 +255,21 @@ class CompilationEngine():
 
         self.current_node = ET.SubElement(self.current_node, 'ifStatement')
 
-        assert self.cur_tkn.text == ' if ', "expected 'if', got '{}'".format(self.cur_tkn.text)
-        self._insert_current_token() # 'if'
-
-        assert self.cur_tkn.text == ' ( ', "expected '(', got '{}'".format(self.cur_tkn.text)
-        self._insert_current_token() # '('
-
+        self._eat_keyword("if")
+        self._eat_symbol("(")
         self.compile_expression()
+        self._eat_symbol(")")
 
-        assert self.cur_tkn.text == ' ) ', "expected ')', got '{}'".format(self.cur_tkn.text)
-        self._insert_current_token() # ')'
-
-        assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
-        self._insert_current_token() # '{'
-
+        self._eat_symbol("{")
         self.compile_statements()
+        self._eat_symbol("}")
 
-        assert self.cur_tkn.text == ' } ', "expected '}', got '{}'".format(self.cur_tkn.text)
-        self._insert_current_token() # '}'
 
         if self.cur_tkn.text == ' else ':
-            self._insert_current_token()
-
-            assert self.cur_tkn.text == ' { ', "expected '{', got '{}'".format(self.cur_tkn.text)
-            self._insert_current_token() # '{'
-
+            self._eat_keyword("else")
+            self._eat_symbol("{")
             self.compile_statements()
-
-            assert self.cur_tkn.text == ' } ', "expected '}', got '{}'".format(self.cur_tkn.text)
-            self._insert_current_token() # '}'
+            self._eat_symbol("}")
 
         self.current_node = parent_node
 
@@ -270,16 +277,17 @@ class CompilationEngine():
         """ Compiles a 'while' statement """
         parent_node = self.current_node
 
+
         self.current_node = ET.SubElement(self.current_node, 'whileStatement')
-        self._insert_current_token() # ' while '
 
-        self._insert_current_token() # '('
+        self._eat_keyword("while")
+        self._eat_symbol("(")
         self.compile_expression()
-        self._insert_current_token() # ')'
+        self._eat_symbol(")")
 
-        self._insert_current_token() # '{'
+        self._eat_symbol("{")
         self.compile_statements()
-        self._insert_current_token() # '}'
+        self._eat_symbol("}")
 
         self.current_node = parent_node
 
@@ -289,9 +297,9 @@ class CompilationEngine():
 
         self.current_node = ET.SubElement(self.current_node, 'doStatement')
 
-        self._insert_current_token() # 'do'.
-        self.compile_term() # term will 'expand' to 'subroutineCall'
-        self._insert_current_token() # ';'
+        self._eat_keyword("do")
+        self.compile_term()  # term will 'expand' to 'subroutineCall'
+        self._eat_symbol(";")
 
         self.current_node = parent_node
 
@@ -300,12 +308,12 @@ class CompilationEngine():
         parent_node = self.current_node
 
         self.current_node = ET.SubElement(self.current_node, 'returnStatement')
-        self._insert_current_token()
+        self._eat_keyword("return")
 
         if self.cur_tkn.text != " ; ":
             self.compile_expression()
 
-        self._insert_current_token()
+        self._eat_symbol(";")
         self.current_node = parent_node
 
     def compile_expression(self):
@@ -315,9 +323,8 @@ class CompilationEngine():
         self.current_node = ET.SubElement(self.current_node, 'expression')
         self.compile_term()
 
-
         while self.cur_tkn.text in OPERATORS:
-            self._insert_current_token()
+            self._eat_symbol()
             self.compile_term()
 
         self.current_node = parent_on_entry
@@ -337,46 +344,38 @@ class CompilationEngine():
 
         if tkn_tag in ["integerConstant", "keyword", "stringConstant"]:
             # term -> integerConstant | stringConstant | keywordConstant
-            self._insert_current_token()
+            self._eat()
 
         elif tkn_txt in [" - ", " ~ "]:
             # term -> unaryOp term
-            self._insert_current_token()
+            self._eat_symbol()
             self.compile_term()
 
         elif tkn_txt == " ( ":
-            # term -> '(' expression ')'
-            self._insert_current_token() # '('
+            self._eat_symbol("(")
             self.compile_expression()
-            self._insert_current_token() # ')'
+            self._eat_symbol(")")
 
         elif tkn_tag == 'identifier':
             # need to lookahead
             tkn_now = self.cur_tkn
-            self.tknzr.advance()
+            self._eat_identifier()
             tkn_nxt = self.cur_tkn
 
             if tkn_nxt.text == ' [ ':
-                # term -> varName '[' expresion ']'
-                _ = self._copy_element(tkn_now, self.current_node)  # varName
-                self._insert_current_token() # '['
+                self._eat_symbol("[")
                 self.compile_expression()
-                self._insert_current_token() # ']'
+                self._eat_symbol("]")
 
             elif tkn_nxt.text == ' ( ' or tkn_nxt.text == ' . ':
-                _ = self._copy_element(tkn_now, self.current_node)  # identifier
 
                 if self.cur_tkn.text == " . ":
-                    self._insert_current_token() # '.'
-                    self._insert_current_token() # subroutineName
+                    self._eat_symbol(".")
+                    self._eat_identifier()  # subroutineName
 
-                self._insert_current_token() # '( '
+                self._eat_symbol("(")
                 self.compile_expressison_list()
-                self._insert_current_token() # ')'
-
-            else:
-                # term -> varName
-                _ = self._copy_element(tkn_now, self.current_node)
+                self._eat_symbol(")")
 
         self.current_node = parent_on_entry
 
@@ -395,7 +394,7 @@ class CompilationEngine():
             self.compile_expression()
 
             if self.cur_tkn.text == ' , ':
-                self._insert_current_token()
+                self._eat_symbol(",")
             else:
                 break
 
@@ -404,8 +403,7 @@ class CompilationEngine():
 
 
 def stringify_xml(elem):
-    """Return a pretty-printed XML string for the Element.
-    """
+    """ Return a pretty-printed XML string for the Element. """
     rough_string = ET.tostring(elem, 'utf-8')
     reparsed = minidom.parseString(rough_string)
     pretty_string = reparsed.toprettyxml(indent="    ")
