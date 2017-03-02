@@ -4,11 +4,28 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 import logging
 import re
+from functools import wraps
 
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
 
 TYPE_PATTERN = r" int | char | boolean | [a-zA-Z_][a-zA-Z0-9_]* "
 
+def record_parent(func):
+    @wraps(func)
+    def func_wrapper(*args, **kwargs):
+        compilation_engine = args[0]
+        compilation_engine.node_ancestors.append(compilation_engine.current_node)
+        return func(*args, **kwargs)
+    return func_wrapper
+
+def reinstate_parent(func):
+    @wraps(func)
+    def func_wrapper(*args, **kwargs):
+        compilation_engine = args[0]
+        retval = func(*args, **kwargs)
+        compilation_engine.current_node = compilation_engine.node_ancestors.pop()
+        return retval
+    return func_wrapper
 
 class CompilationEngine():
 
@@ -17,7 +34,7 @@ class CompilationEngine():
         compile_class """
         self.tknzr = tokenizer
         self.current_node = None
-        self.parent_node = None
+        self.node_ancestors = [ ]
         self.xml_tree = ET.ElementTree()
         self.output_file_path = output_file_path
 
@@ -26,12 +43,6 @@ class CompilationEngine():
         self.compile_class()
         with open(self.output_file_path.as_posix(), "w") as outfile:
             outfile.write(stringify_xml(self.xml_tree.getroot()))
-
-    @staticmethod
-    def _copy_element(element, parent):
-        sub_element = ET.SubElement(parent, element.tag)
-        sub_element.text = element.text
-        return sub_element
 
     def compile_class(self):
         """ Compiles a complete class
@@ -60,13 +71,13 @@ class CompilationEngine():
     def cur_tkn(self):
         return self.tknzr.current_token
 
+    @record_parent
+    @reinstate_parent
     def compile_class_var_dec(self):
         """ Compiles a static variable declaration, or a field declaration """
         if self.cur_tkn.text not in [" static ", " field "]:
-            logging.warning(self.cur_tkn.text)
             return
 
-        parent_node = self.current_node
         self.current_node = ET.SubElement(self.current_node, "classVarDec")
 
         self._eat_keyword(["field", "static"])
@@ -79,14 +90,12 @@ class CompilationEngine():
 
         self._eat_symbol(";")
 
-        self.current_node = parent_node
-
+    @record_parent
+    @reinstate_parent
     def compile_subroutine_dec(self):
         """ Compiles a complete method, function, or constructor """
         if self.cur_tkn.text not in [" constructor ", " function ", " method "]:
             return False
-
-        parent_on_entry = self.current_node
 
         self.current_node = ET.SubElement(self.current_node, "subroutineDec")
 
@@ -100,12 +109,10 @@ class CompilationEngine():
 
         self.compile_subroutine_body()
 
-        self.current_node = parent_on_entry
-
+    @record_parent
+    @reinstate_parent
     def compile_parameter_list(self):
         """ Compiles a (possibly empty) parameter list. Does not handle the enclosing '()' """
-        parent_on_entry = self.current_node
-
         self.current_node = ET.SubElement(self.current_node, "parameterList")
         self.current_node.text = "\n"
 
@@ -117,11 +124,10 @@ class CompilationEngine():
             if self.cur_tkn.text == " , ":
                 self._eat_symbol(",")
 
-        self.current_node = parent_on_entry
-
+    @record_parent
+    @reinstate_parent
     def compile_subroutine_body(self):
         """ Compiles a subroutine's body """
-        parent_on_entry = self.current_node
         self.current_node = ET.SubElement(self.current_node, 'subroutineBody')
 
         self._eat_symbol("{")
@@ -130,8 +136,6 @@ class CompilationEngine():
 
         self.compile_statements()
         self._eat_symbol("}")
-
-        self.current_node = parent_on_entry
 
     def _eat_symbol(self, expected_value=None):
         self.__validate_and_insert_current_token("symbol", expected_value)
@@ -166,21 +170,21 @@ class CompilationEngine():
                     "unexpected value; value of current token '{}' is not in '{}'".format(tkn_text, expected_value)
         if expected_pattern is not None:
             regex = re.compile(expected_pattern)
-            assert regex.findall(tkn_text) is not None, \
+            assert regex.search(tkn_text) is not None, \
                 "expected current token value to match pattern {}; it didn't.".format(expected_pattern)
 
         sub_element = ET.SubElement(self.current_node, self.cur_tkn.tag)
         sub_element.text = self.cur_tkn.text
         self.tknzr.advance()
 
+    @record_parent
+    @reinstate_parent
     def compile_var_dec(self):
         """ Compiles a 'var' declaration
 
         a 'varDec' element is only added if their is at least one variable declaration """
         if self.cur_tkn.text != " var ":
             return
-
-        parent_on_entry = self.current_node
 
         self.current_node = ET.SubElement(self.current_node, "varDec")
 
@@ -198,8 +202,8 @@ class CompilationEngine():
             if previous_token.text == " ; ":
                 break
 
-        self.current_node = parent_on_entry
-
+    @record_parent
+    @reinstate_parent
     def compile_statements(self):
         """ Compiles a sequence of statements. Does not handle the enclosing '{}'
 
@@ -208,7 +212,6 @@ class CompilationEngine():
 
         Note: There is no compile_statement method
         """
-        parent_on_entry = self.current_node
         self.current_node = ET.SubElement(self.current_node, 'statements')
 
         while self.cur_tkn.text in [" do ", " while ", " if ", " let ", " return "]:
@@ -226,13 +229,12 @@ class CompilationEngine():
             else:
                 break
 
-        self.current_node = parent_on_entry
 
+    @record_parent
+    @reinstate_parent
     def compile_let(self):
         """ Compiles a 'let' statement """
-        parent_node = self.current_node
-
-        self.current_node = ET.SubElement(parent_node, "letStatement")
+        self.current_node = ET.SubElement(self.current_node, "letStatement")
 
         self._eat_keyword("let")
         self._eat_identifier()  # varName
@@ -246,13 +248,10 @@ class CompilationEngine():
         self.compile_expression()
         self._eat_symbol(";")
 
-        self.current_node = parent_node
-
+    @record_parent
+    @reinstate_parent
     def compile_if(self):
         """ Compiles an 'if' statement, possibly with a trailing 'else' clause """
-
-        parent_node = self.current_node
-
         self.current_node = ET.SubElement(self.current_node, 'ifStatement')
 
         self._eat_keyword("if")
@@ -271,11 +270,10 @@ class CompilationEngine():
             self.compile_statements()
             self._eat_symbol("}")
 
-        self.current_node = parent_node
-
+    @record_parent
+    @reinstate_parent
     def compile_while(self):
         """ Compiles a 'while' statement """
-        parent_node = self.current_node
         self.current_node = ET.SubElement(self.current_node, 'whileStatement')
 
         self._eat_keyword("while")
@@ -287,11 +285,11 @@ class CompilationEngine():
         self.compile_statements()
         self._eat_symbol("}")
 
-        self.current_node = parent_node
 
+    @record_parent
+    @reinstate_parent
     def compile_do(self):
         """ Compiles a 'do' statement """
-        parent_node = self.current_node
 
         self.current_node = ET.SubElement(self.current_node, 'doStatement')
 
@@ -299,11 +297,11 @@ class CompilationEngine():
         self.compile_term()  # term will 'expand' to 'subroutineCall'
         self._eat_symbol(";")
 
-        self.current_node = parent_node
 
+    @record_parent
+    @reinstate_parent
     def compile_return(self):
         """ Compiles a 'return' statement """
-        parent_node = self.current_node
 
         self.current_node = ET.SubElement(self.current_node, 'returnStatement')
         self._eat_keyword("return")
@@ -312,11 +310,11 @@ class CompilationEngine():
             self.compile_expression()
 
         self._eat_symbol(";")
-        self.current_node = parent_node
 
+    @record_parent
+    @reinstate_parent
     def compile_expression(self):
         """ Compiles an expression """
-        parent_on_entry = self.current_node
 
         self.current_node = ET.SubElement(self.current_node, 'expression')
         self.compile_term()
@@ -325,15 +323,15 @@ class CompilationEngine():
             self._eat_symbol()
             self.compile_term()
 
-        self.current_node = parent_on_entry
 
+    @record_parent
+    @reinstate_parent
     def compile_term(self):
         """ Compiles a term
 
         If the current token is an identifier, the routines must distinguish between a variable, an array entry, or a
         subroutine call. A single lookahead token (which may be one of '[', '(', or '.') suffices to distinguish
         between the possibilities. Any other token is not part of this term and should not be advanced over. """
-        parent_on_entry = self.current_node
         if self.current_node.tag != "doStatement":
             self.current_node = ET.SubElement(self.current_node, 'term')
 
@@ -375,8 +373,9 @@ class CompilationEngine():
                 self.compile_expressison_list()
                 self._eat_symbol(")")
 
-        self.current_node = parent_on_entry
 
+    @record_parent
+    @reinstate_parent
     def compile_expressison_list(self):
         """ Compiles a (possibly empty) comma-separated list of expressions """
         expression_list_node = ET.SubElement(self.current_node, 'expressionList')
@@ -385,19 +384,15 @@ class CompilationEngine():
             expression_list_node.text = "\n"
             return
 
-        parent_on_entry = self.current_node
         self.current_node = expression_list_node
         while True:
 
             self.compile_expression()
 
-            if self.cur_tkn.text == ' , ':
-                self._eat_symbol(",")
-            else:
+            if self.cur_tkn.text != ' , ':
                 break
 
-        self.current_node = parent_on_entry
-
+            self._eat_symbol(",")
 
 
 def stringify_xml(elem):

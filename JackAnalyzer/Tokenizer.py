@@ -30,6 +30,7 @@ RE_COMMENT = re.compile(r"""(?:\s*)/\*\*\n                  # /**
 Span = namedtuple("Span", "start end")
 JackMatch = namedtuple("JackMatch", "tag text span")
 
+
 class Tokenizer():
 
     def __init__(self, jack_code=None, jack_filepath=None):
@@ -103,7 +104,6 @@ class Tokenizer():
 
         if len(self._input[self._pos:].strip()) != 0:
             print("warning! failed to match string beginning '{}'".format(self._input[self._pos:self._pos+10]))
-
 
     @property
     def current_token(self):

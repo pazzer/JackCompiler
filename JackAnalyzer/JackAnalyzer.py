@@ -5,14 +5,12 @@
 __author__ = 'paulpatterson'
 
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
 from pathlib import Path
 import sys
-import os
 from JackAnalyzer.Tokenizer import Tokenizer
 from JackAnalyzer.CompilationEngine import CompilationEngine
 
-JACK_ANALYZER_ROOT = "/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer"
+JACK_ANALYZER_ROOT = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer")
 
 class JackAnalyzer():
 
@@ -44,7 +42,7 @@ class JackAnalyzer():
         analyzer = cls()
         analyzer.jack_snippet = jack_snippet
         if user_defined_outfile_path is None:
-            user_defined_outfile_path = Path(os.path.join(JACK_ANALYZER_ROOT, "jack_analyzed.xml"))
+            user_defined_outfile_path = JACK_ANALYZER_ROOT / "jack_analyzed.xml"
             if not user_defined_outfile_path.exists():
                 JackAnalyzer.create_outfile_at_path(user_defined_outfile_path)
             analyzer.outfile_path = user_defined_outfile_path

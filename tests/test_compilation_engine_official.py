@@ -2,14 +2,13 @@
 
 import unittest
 from pathlib import Path
-import os
 import xml.etree.ElementTree as ET
-import logging
 from JackAnalyzer.JackAnalyzer import JackAnalyzer
 from JackAnalyzer.CompilationEngine import stringify_xml
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE, PROJ_10_DIR
 
-ARRAY_TEST_DIRECTORY_PATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/nand2tetris/projects/10/ArrayTest")
+ARRAY_TEST_DIRECTORY_PATH = \
+    Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/nand2tetris/projects/10/ArrayTest")
 
 class TestCompilationEngineOfficial(unittest.TestCase):
 
@@ -33,7 +32,7 @@ class TestCompilationEngineOfficial(unittest.TestCase):
     # ArrayTest
 
     def test_array_test__main(self):
-        actual, expected = self._prepare_test( Path(PROJ_10_DIR ) / "ArrayTest" / "Main.jack" )
+        actual, expected = self._prepare_test( Path(PROJ_10_DIR) / "ArrayTest" / "Main.jack" )
         self.assertMultiLineEqual(actual, expected)
 
     # Square

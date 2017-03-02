@@ -13,7 +13,7 @@ from tests.globals import PROJ_10_DIR
 class OfficialTokenizerTests(unittest.TestCase):
 
     def _prepare_official_tokens_test(self, project, filename):
-        jack_file_path = Path(os.path.join(PROJ_10_DIR, project + "/" + filename + ".jack"))
+        jack_file_path = PROJ_10_DIR / project / (filename + ".jack")
         tknzr = Tokenizer(jack_filepath=jack_file_path)
         actual_xml_tokens = tknzr.tokenize()
         actual_string_tokens = stringify_xml(actual_xml_tokens)
