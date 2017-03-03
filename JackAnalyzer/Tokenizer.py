@@ -34,7 +34,16 @@ JackMatch = namedtuple("JackMatch", "tag text span")
 class Tokenizer():
 
     def __init__(self, jack_code=None, jack_filepath=None):
-        """ Opens the input file/stream and gets ready to tokenize it. """
+        """ Creates a Tokenizer, ready to tokenize a jack string or a jack file.
+
+        Exactly one argument is expected; if two are received the file path argument is used to create the Tokenizer's
+        input, and the jack_code argument is ignored.
+
+        :param jack_code: a string representing error-free .jack code
+        :type jack_code: str
+        :param jack_filepath: a pathlib.Path object representing an error-free .jack file
+        :type jack_filepath: pathlib.Path
+         """
         if jack_filepath is not None:
             with open(jack_filepath.as_posix(), 'r') as jack_file:
                 self._input = jack_file.read()
@@ -45,7 +54,14 @@ class Tokenizer():
 
 
     def tokenize(self):
-        """ Tokenizes the entire input string in one go (useful for testing) """
+        """ Tokenizes the entire input string in one go (useful for testing).
+
+         Marches through the input until the last token is consumed, at which point all identified tokens are returned
+         in the form of a simple xml object; the root node of this object has the tag 'tokens' and its children are
+         childless elements each of which represent one token. The tag of each token denotes the token type (one of
+         (symbol, identifier, stringConstant, integerConstant, keyword), whilst the 'text' attribute stores the token's
+         value
+         """
         next_token = self.advance()
         while next_token is not None:
             next_token = self.advance()
@@ -107,19 +123,19 @@ class Tokenizer():
 
     @property
     def current_token(self):
+        """
+        Returns the current token in the form of an xml element.
+
+        Use the 'tag' and 'text' properties of this element to return the token's type and value respectively.
+        """
         tokens = self.tokens.findall("*/.[last()]")
         if len(tokens) > 0:
             return tokens[-1]
         else:
             return None
 
-    def has_more_tokens(self):
-        """ Do we have more tokens in the input? """
-        return self._lookahead() is not None
-
     def advance(self):
-        """ Gets the next token from the input and makes it the current token. This method
-        should only be called if hasMoreTokens() is true. Initially there is no current token. """
+        """ Gets the next token from the input and makes it the current token. Initially there is no current token. """
         jack_match = self._lookahead()
         if jack_match is not None:
             token_element = ET.SubElement(self.tokens, jack_match.tag)
@@ -128,4 +144,6 @@ class Tokenizer():
             return token_element
 
     def __str__(self):
+        """ Outputs the type and value of all tokens processed so far. """
+        Tokenizer()
         return "\n".join(["{}, {}".format(child.tag, child.text) for child in self.tokens])

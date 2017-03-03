@@ -6,11 +6,12 @@ __author__ = 'paulpatterson'
 
 import xml.etree.ElementTree as ET
 from pathlib import Path
-import sys
 from JackAnalyzer.Tokenizer import Tokenizer
 from JackAnalyzer.CompilationEngine import CompilationEngine
+import sys
 
 JACK_ANALYZER_ROOT = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer")
+
 
 class JackAnalyzer():
 
@@ -24,7 +25,6 @@ class JackAnalyzer():
             if path.is_file():
                 assert path.suffix == ".jack", \
                     "Analysis failed: user-supplied filename must have '.jack' extension, not '{}'".format(path.suffix)
-
                 self.jack_file_paths = [path]
             else:
                 self.jack_file_paths = []
@@ -33,38 +33,32 @@ class JackAnalyzer():
                         self.jack_file_paths.append(child)
 
     @classmethod
-    def create_outfile_at_path(cls, path):
+    def _create_outfile_at_path(cls, path):
+        """ Creates a new file at the given path """
         with open(path.as_posix()) as _:
             pass
 
     @classmethod
     def analyzer_for_snippet(cls, jack_snippet, user_defined_outfile_path=None):
-        analyzer = cls()
-        analyzer.jack_snippet = jack_snippet
-        if user_defined_outfile_path is None:
-            user_defined_outfile_path = JACK_ANALYZER_ROOT / "jack_analyzed.xml"
+        ja = cls()
+        ja.jack_snippet = jack_snippet
+        if user_defined_outfile_path is not None:
+            # user has requested analysis output be written to a file
             if not user_defined_outfile_path.exists():
-                JackAnalyzer.create_outfile_at_path(user_defined_outfile_path)
-            analyzer.outfile_path = user_defined_outfile_path
-        else:
-            analyzer.outfile_path = user_defined_outfile_path
-        return analyzer
-
+                JackAnalyzer._create_outfile_at_path(user_defined_outfile_path)
+            ja.outfile_path = user_defined_outfile_path
+        return ja
 
     def _analyze_snippet(self):
         tknzr = Tokenizer(jack_code=self.jack_snippet)
         self.compilation_engine = CompilationEngine(tokenizer=tknzr, output_file_path=self.outfile_path)
         self.compilation_engine.compile()
 
-
-    def _contents_of_outfile(self):
-        return ET.parse(self.outfile_path.as_posix())
-
     def analyze(self, return_results=False):
         if self.jack_snippet is not None:
             self._analyze_snippet()
             if return_results:
-                return self._contents_of_outfile()
+                return self.compilation_engine.xml_tree
 
         else:
             resulting_xml = []
@@ -74,5 +68,10 @@ class JackAnalyzer():
                 self.compilation_engine = CompilationEngine(tokenizer=tknzr, output_file_path=self.outfile_path)
                 self.compilation_engine.compile()
                 if return_results:
-                    resulting_xml.append(self._contents_of_outfile())
+                    resulting_xml.append(self.compilation_engine.xml_tree)
             return resulting_xml
+
+if __name__ == "__main__":
+    file_or_path = sys.argv[0]
+    analyzer = JackAnalyzer(path=file_or_path)
+    analyzer.analyze()
