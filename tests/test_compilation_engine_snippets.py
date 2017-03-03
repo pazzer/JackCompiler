@@ -10,6 +10,7 @@ from JackAnalyzer.CompilationEngine import stringify_xml
 
 TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/tests/Tests.xml")
 
+
 class CustomAnalyzerTests(unittest.TestCase):
 
     def setUp(self):
