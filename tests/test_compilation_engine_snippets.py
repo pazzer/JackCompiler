@@ -3,7 +3,6 @@ __author__ = 'paulpatterson'
 import xml.etree.ElementTree as ET
 import unittest
 from pathlib import Path
-import logging
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
 
 from JackAnalyzer.JackAnalyzer import JackAnalyzer

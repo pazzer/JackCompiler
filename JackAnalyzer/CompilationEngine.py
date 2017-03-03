@@ -45,10 +45,6 @@ class CompilationEngine():
     def cur_tkn(self):
         return self.tknzr.current_token
 
-    # @property
-    # def parent_node(self):
-    #     self.xml_tree.find()
-
     def compile(self):
         self.tknzr.advance()
         self._compile_class()

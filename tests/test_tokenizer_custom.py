@@ -112,15 +112,6 @@ class CustomTokenizerTests(unittest.TestCase):
         self.assertTrue(\
             xml.text == " ; ", "advance() returned unexpected result: got '', expected ';'".format(xml.text))
 
-    # Testing 'has_more_tokens()'
-    def test_has_more_tokens(self):
-        jack_snippet = "return 12"
-        tokenizer = Tokenizer(jack_code=jack_snippet)
-        self.assertTrue(tokenizer.has_more_tokens(), "'has_more_tokens()' reporting False - expected True")
-        tokenizer.advance()
-        tokenizer.advance()
-        self.assertFalse(tokenizer.has_more_tokens(), "'has_more_tokens()' reporting True - expected False")
-
     def test_handling_comments(self):
         jack_snippet = """
         class Main { // Ignore this...
