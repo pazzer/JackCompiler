@@ -1,7 +1,7 @@
 
 import unittest
 
-from JackAnalyzer.Tokenizer import Tokenizer
+from jack_analyzer.Tokenizer import Tokenizer
 
 
 class CustomTokenizerTests(unittest.TestCase):
