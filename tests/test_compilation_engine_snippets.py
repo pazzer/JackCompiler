@@ -6,8 +6,8 @@ from pathlib import Path
 import logging
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
 
-from JackAnalyzer.JackAnalyzer import JackAnalyzer
-from JackAnalyzer.CompilationEngine import stringify_xml
+from jack_analyzer.JackAnalyzer import JackAnalyzer
+from jack_analyzer.CompilationEngine import stringify_xml
 
 TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/tests/Tests.xml")
 

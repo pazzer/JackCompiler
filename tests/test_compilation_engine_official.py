@@ -3,8 +3,8 @@
 import unittest
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from JackAnalyzer.JackAnalyzer import JackAnalyzer
-from JackAnalyzer.CompilationEngine import stringify_xml
+from jack_analyzer.JackAnalyzer import JackAnalyzer
+from jack_analyzer.CompilationEngine import stringify_xml
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE, PROJ_10_DIR
 
 ARRAY_TEST_DIRECTORY_PATH = \
