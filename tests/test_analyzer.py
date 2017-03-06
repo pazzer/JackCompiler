@@ -1,6 +1,6 @@
 
 import unittest
-from JackAnalyzer.JackAnalyzer import JackAnalyzer
+from jack_analyzer.JackAnalyzer import JackAnalyzer
 from pathlib import Path
 import os
 
