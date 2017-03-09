@@ -6,9 +6,10 @@ __author__ = 'paulpatterson'
 
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from JackAnalyzer.Tokenizer import Tokenizer
-from JackAnalyzer.CompilationEngine import CompilationEngine
+from jack_analyzer.Tokenizer import Tokenizer
+from jack_analyzer.CompilationEngine import CompilationEngine
 import sys
+import os
 
 JACK_ANALYZER_ROOT = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer")
 
@@ -58,7 +59,7 @@ class JackAnalyzer():
         if self.jack_snippet is not None:
             self._analyze_snippet()
             if return_results:
-                return self.compilation_engine.xml_tree
+                return self.compilation_engine.parse_tree
 
         else:
             resulting_xml = []
@@ -68,10 +69,11 @@ class JackAnalyzer():
                 self.compilation_engine = CompilationEngine(tokenizer=tknzr, output_file_path=self.outfile_path)
                 self.compilation_engine.compile()
                 if return_results:
-                    resulting_xml.append(self.compilation_engine.xml_tree)
+                    resulting_xml.append(self.compilation_engine.parse_tree)
             return resulting_xml
 
 if __name__ == "__main__":
-    file_or_path = sys.argv[0]
-    analyzer = JackAnalyzer(path=file_or_path)
+    user_supplied_file_or_folder = sys.argv[1]
+    path = Path(os.getcwd()) / user_supplied_file_or_folder
+    analyzer = JackAnalyzer(path=path)
     analyzer.analyze()

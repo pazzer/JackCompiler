@@ -33,7 +33,7 @@ JackMatch = namedtuple("JackMatch", "tag text span")
 
 class Tokenizer():
 
-    def __init__(self, jack_code=None, jack_filepath=None):
+    def __init__(self, jack_filepath):
         """ Creates a Tokenizer, ready to tokenize a jack string or a jack file.
 
         Exactly one argument is expected; if two are received the file path argument is used to create the Tokenizer's
@@ -44,11 +44,9 @@ class Tokenizer():
         :param jack_filepath: a pathlib.Path object representing an error-free .jack file
         :type jack_filepath: pathlib.Path
          """
-        if jack_filepath is not None:
-            with open(jack_filepath.as_posix(), 'r') as jack_file:
-                self._input = jack_file.read()
-        else:
-            self._input = jack_code
+        with open(jack_filepath.as_posix(), 'r') as jack_file:
+            self._input = jack_file.read()
+
         self.tokens = ET.Element("tokens")
         self._pos = 0
 

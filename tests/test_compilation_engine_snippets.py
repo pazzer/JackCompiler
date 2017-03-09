@@ -5,8 +5,8 @@ import unittest
 from pathlib import Path
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
 
-from JackAnalyzer.JackAnalyzer import JackAnalyzer
-from JackAnalyzer.CompilationEngine import stringify_xml
+from jack_analyzer.JackCompiler import JackCompiler
+from jack_analyzer.CompilationEngine import stringify_xml
 
 TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/tests/Tests.xml")
 
@@ -37,10 +37,12 @@ class CustomAnalyzerTests(unittest.TestCase):
         formatted_snippet = self._generate_formatted_snippet(test_name)
         expected_xml = self._generate_expected_xml(test_name)
 
-        analyzer = JackAnalyzer.analyzer_for_snippet(formatted_snippet)
-        actual_xml = analyzer.analyze(return_results=True)
+        outfile = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/.test_vm.vm")
+        compiler = JackCompiler.compiler_for_jack_string(formatted_snippet, outfile)
+        compiler.compile()
+        parse_tree = compiler.parse_tree
 
-        actual_string = stringify_xml(actual_xml.getroot())
+        actual_string = stringify_xml(parse_tree.getroot())
         expected_string = stringify_xml(expected_xml)
 
         with open(ACTUAL_COMPARE.as_posix(), 'w') as compOne:
@@ -48,7 +50,7 @@ class CustomAnalyzerTests(unittest.TestCase):
                 compOne.write(actual_string)
                 compareTwo.write(expected_string)
 
-        actual_string = stringify_xml(actual_xml.getroot())
+        actual_string = stringify_xml(parse_tree.getroot())
         expected_string = stringify_xml(expected_xml)
 
         return actual_string, expected_string

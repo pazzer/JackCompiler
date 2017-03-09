@@ -5,8 +5,8 @@ from pathlib import Path
 import os
 import unittest
 
-from JackAnalyzer.Tokenizer import Tokenizer
-from JackAnalyzer.CompilationEngine import stringify_xml
+from jack_analyzer.Tokenizer import Tokenizer
+from jack_analyzer.CompilationEngine import stringify_xml
 
 from tests.globals import PROJ_10_DIR
 
