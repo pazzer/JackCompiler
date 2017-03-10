@@ -6,7 +6,7 @@ import re
 from functools import wraps
 import sys
 from jack_analyzer.SymbolTable import SymbolTable
-from collections import namedtuple
+import logging as log
 
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
 
@@ -160,7 +160,7 @@ class CompilationEngine():
         # if self.cur_tkn.text == " constructor ":
 
 
-        if self._eat_keyword() != "function":
+        if self._eat_keyword() == "method":
             self.symbol_table.define("this", self.class_name, "ARG")
         self._eat()
         self.subroutine_name = self._eat_identifier()
@@ -218,8 +218,6 @@ class CompilationEngine():
         elif self.subroutine_summary.is_method():
             self.vm_writer.write_push("ARG", 0)
             self.vm_writer.write_pop("POINTER", 0)
-
-
 
         self._compile_statements()
         self._eat_symbol("}")
@@ -461,20 +459,23 @@ class CompilationEngine():
             value = self._eat()
             if tkn_tag == "integerConstant":
                 self.vm_writer.write_push("CONST", value)
-            if tkn_tag == "stringConstant":
+            elif tkn_tag == "stringConstant":
                 self.vm_writer.write_string(tkn_txt)
-            elif tkn_tag == "keyword" and tkn_txt == " true ":
+            elif tkn_txt == " true ":
                 self.vm_writer.write_push("CONST", 0)
                 self.vm_writer.write_arithmetic("NOT")
-            elif tkn_tag == "keyword" and tkn_txt in [" false ", " null "]:
+            elif tkn_txt in [" false ", " null "]:
                 self.vm_writer.write_push("CONST", 0)
+            elif tkn_txt == " this ":
+                self.vm_writer.write_push("POINTER", 0)
+            else:
+                pass
 
         elif tkn_txt in [" - ", " ~ "]:
             # term -> unaryOp term
             command = "NEG" if self._eat_symbol() == "-" else "NOT"
             self._compile_term()
             self.vm_writer.write_arithmetic(command)
-
 
         elif tkn_txt == " ( ":
             # term -> '(' expression ')'
@@ -484,16 +485,15 @@ class CompilationEngine():
 
         elif tkn_tag == 'identifier':
             # need to lookahead
-            var_or_class_name = self._eat_identifier()
+            identifier = self._eat_identifier()
             tkn_nxt = self.cur_tkn
 
             if tkn_nxt.text == ' [ ':
                 # term -> varName '[' expression ']'
-
-
+                variable = identifier
                 self._eat_symbol("[")
                 self._compile_expression()
-                self.vm_writer.write_push(self.symbol_table.kind_of(var_or_class_name), self.symbol_table.index_of(var_or_class_name))
+                self.vm_writer.write_push(self.symbol_table.kind_of(variable), self.symbol_table.index_of(variable))
                 self.vm_writer.write_arithmetic("ADD")
                 self.vm_writer.write_pop("POINTER", 1)
                 self.vm_writer.write_push("THAT", 0)
@@ -503,39 +503,57 @@ class CompilationEngine():
                 num_args = 0
                 self.calling_method = False
                 if self.cur_tkn.text == " . ":
-                    # term -> (className|varName) '.' subroutineName '(' expressionList ')'
-                    #
-                    # let game = SquareGame.new(); -> className
-                    # do game.run();               -> varName (where game is an instance of SquareGame)
-                    tkn_txt = tkn_txt.strip()
-                    # See Note 1.
-                    if self.symbol_table.recognises_symbol(tkn_txt):
-                        symbol_type = self.symbol_table.type_of(tkn_txt)
-                        symbol_index = self.symbol_table.index_of(tkn_txt)
-                        symbol_kind = self.symbol_table.kind_of(tkn_txt)
-                        if symbol_type not in BUILT_IN_TYPES:
-                            var_or_class_name = symbol_type
-                            self.vm_writer.write_push(symbol_kind, symbol_index)
-                            num_args = 1
                     self._eat_symbol(".")
-                    subroutine_name = self._eat_identifier() # e.g. 'new' or 'run'
+                    subroutine_name = self._eat_identifier().strip()
+
+                    if self.symbol_table.recognises_symbol(tkn_txt.strip()):
+                        # term -> varName '.' subroutineName '(' expressionList ')'
+                        # tkn_text is a varName
+                        # (a METHOD call)
+                        # .jack: do game.run()
+                        # .vm:   function PongGame.run 1 // 1 arg (self)
+
+                        symbol_type = self.symbol_table.type_of(tkn_txt.strip())
+                        symbol_index = self.symbol_table.index_of(tkn_txt.strip())
+                        symbol_kind = self.symbol_table.kind_of(tkn_txt.strip())
+                        #if symbol_type not in BUILT_IN_TYPES:
+                        self.vm_writer.write_push(symbol_kind, symbol_index)
+                        call_name = symbol_type + "." + subroutine_name
+                        num_args = 1
+
+                    else:
+                        # term -> className '.' subroutineName '(' expressionList ')'
+                        # tkn_txt is className
+                        # (a SUBROUTINE call)
+                        # .jack: PongGame.newInstance()
+                        # .vm:   call PongGame.newInstance 0 // (no args)
+                        call_name = tkn_txt.strip() + "." + subroutine_name
+
+                     # e.g. 'new' or 'run'
+
                 else:
                     # term -> subroutineName '(' expressionList ')'
-                    subroutine_name = tkn_txt
+                    # (a METHOD call)
+                    # .jack: do moveBall()
+                    # .vm    call PongGame.moveBall 1
+                    self.vm_writer.write_push("POINTER", 0)
+                    call_name = self.class_name + "." + identifier
+                    num_args = 1
 
                 self._eat_symbol("(")
                 num_args += self._compile_expressison_list()
                 self._eat_symbol(")")
 
-                self.vm_writer.write_call(var_or_class_name + "." + subroutine_name, num_args)
+                self.vm_writer.write_call(call_name, num_args)
                 if not self.compiling_let:
                     self.vm_writer.write_pop("TEMP", 0)
 
 
             else:
-                if self.symbol_table.recognises_symbol(var_or_class_name):
-                    index = self.symbol_table.index_of(var_or_class_name)
-                    kind = self.symbol_table.kind_of(var_or_class_name)
+
+                if self.symbol_table.recognises_symbol(identifier):
+                    index = self.symbol_table.index_of(identifier)
+                    kind = self.symbol_table.kind_of(identifier)
                     self.vm_writer.write_push(kind, index)
 
 

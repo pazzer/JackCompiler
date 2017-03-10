@@ -100,7 +100,7 @@ class CompilerVMGeneration(TestCase):
         self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
 
     def test_square_main(self):
-        test_strings = self._vm_strings_for_test("SquareMain")
+        test_strings = self._vm_strings_for_test("Square-Main")
         self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
         self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
 
@@ -149,7 +149,7 @@ class CompilerVMGeneration(TestCase):
         self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
         self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
 
-    def test_complex_arrays(self):
+    def test_complex_arrays_fragment(self):
         test_strings = self._vm_strings_for_test("complex-arrays-fragment")
         self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
         self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
@@ -169,3 +169,27 @@ class CompilerVMGeneration(TestCase):
         self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
         self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
 
+    def test_pong_bat(self):
+        test_strings = self._vm_strings_for_test("Pong-Bat")
+        self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
+        self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
+
+    def test_pong_ball(self):
+        test_strings = self._vm_strings_for_test("Pong-Ball")
+        self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
+        self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
+
+    def test_square_squaregame(self):
+        test_strings = self._vm_strings_for_test("Square-SquareGame")
+        self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
+        self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
+
+    def test_square_square(self):
+        test_strings = self._vm_strings_for_test("Square-Square")
+        self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
+        self.assertMultiLineEqual(test_strings.actual, test_strings.expected)
+
+    def test_complex_arrays(self):
+        test_strings = self._vm_strings_for_test("ComplexArrays")
+        self.assertIsNotNone(test_strings, "failed to generate either expected vm code, actual vm code, or both.")
+        self.assertMultiLineEqual(test_strings.actual, test_strings.expected)

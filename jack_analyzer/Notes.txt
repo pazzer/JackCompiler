@@ -17,10 +17,15 @@ The following code handles this translation:
         elif tkn_nxt.text == ' ( ' or tkn_nxt.text == ' . ':
         self.calling_method = False
         if self.cur_tkn.text == " . ":
-            # term -> (className|varName) '.' subroutineName '(' expressionList ')'
-            #
-            # let game = SquareGame.new(); -> className
-            # do game.run();               -> varName (where game is an instance of SquareGame)
+            # term -> className '.' subroutineName '(' expressionList ')'
+            # (a SUBROUTINE call)
+            # .jack: PongGame.newInstance()
+            # .vm:   function PongGame.newInstance
+
+            # term -> varName '.' subroutineName '(' expressionList ')'
+            # (a METHOD call)
+            # .jack: do game.run()
+            # .vm:   function PongGame.run 1
 
 
             ######################################
@@ -35,6 +40,9 @@ The following code handles this translation:
             subroutine_name = self._eat_identifier()
         else:
             # term -> subroutineName '(' expressionList ')'
+            # (a METHOD call)
+            # .jack: do moveBall()
+            # .vm    function PongGame.moveBall 5
             pass
 
 We've established that it's either (i) className.subroutineName(...) or (ii) varName.subroutineName(...). In
