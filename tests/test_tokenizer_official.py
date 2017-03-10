@@ -1,8 +1,6 @@
 __author__ = 'paulpatterson'
 
 import xml.etree.ElementTree as ET
-from pathlib import Path
-import os
 import unittest
 
 from jack_analyzer.Tokenizer import Tokenizer

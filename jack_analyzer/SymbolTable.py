@@ -33,6 +33,13 @@ class SymbolTable():
         for k, v in self._class_symbols.items():
             print("{}:{}, {}, {}".format(k, v.type, v.kind, v.index))
 
+    def output_all_symbols(self):
+        print("class-level symbols")
+        self.output_class_symbols()
+        print("subroutine symbols")
+        self.output_subroutine_symbols()
+
+
     def define(self, name, var_type, kind):
         """Defines a new identifier of the given name, type, and kind and assigns it a running index.
 

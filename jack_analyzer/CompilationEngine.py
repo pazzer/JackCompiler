@@ -11,8 +11,38 @@ from collections import namedtuple
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
 
 JACK_ARITHMETIC_COMMANDS = [" + ", " - ", " * ", " / ", " & ", " | ", " = ", " > ", " < "]
-
+BUILT_IN_TYPES = ["int", "char", "boolean"]
 TYPE_PATTERN = r" int | char | boolean | [a-zA-Z_][a-zA-Z0-9_]* "
+
+
+class SubroutineSummary():
+    def __init__(self):
+        self.class_name = None
+        self.name = None
+        self.num_params = None
+        self.num_locals = None
+        self.kind = None
+
+    def is_method(self):
+        return self.kind == "method"
+
+    def is_constructor(self):
+        return self.kind== "constructor"
+
+    def is_subroutine(self):
+        return self.kind == "subroutine"
+
+    def update(self, class_name=None, name=None, num_params=None, num_locals=None, kind=None):
+        if class_name is not None:
+            self.class_name = class_name
+        if name is not None:
+            self.name = name
+        if num_params is not None:
+            self.num_params = num_params
+        if num_locals is not None:
+            self.num_locals = num_locals
+        if kind is not None:
+            self.kind = kind
 
 def record_parent(func):
     @wraps(func)
@@ -44,12 +74,17 @@ class CompilationEngine():
         self.node_ancestors = []
         self.parse_tree = ET.ElementTree()
 
+        self.subroutine_summary = SubroutineSummary()
         self.current_node = None
         self.class_name = None
         self.subroutine_name = None
+        self.subroutine_is_method = False
 
         self.compiling_let = False
         self.compiling_do = False
+
+        self.if_counter = None
+        self.while_counter = None
 
 
     @property
@@ -116,7 +151,14 @@ class CompilationEngine():
         if self.cur_tkn.text not in [" constructor ", " function ", " method "]:
             return False
 
+        self.subroutine_summary.update(kind=self.cur_tkn.text.strip(), class_name=self.class_name)
+
+        self.symbol_table.start_subroutine()
+        self.subroutine_is_method = self.cur_tkn.text == " method "
         self.current_node = ET.SubElement(self.current_node, "subroutineDec")
+
+        # if self.cur_tkn.text == " constructor ":
+
 
         if self._eat_keyword() != "function":
             self.symbol_table.define("this", self.class_name, "ARG")
@@ -137,15 +179,18 @@ class CompilationEngine():
         """ Compiles a (possibly empty) parameter list. Does not handle the enclosing '()' """
         self.current_node = ET.SubElement(self.current_node, "parameterList")
         self.current_node.text = "\n"
-        num_parameters = 0
+        num_params = 0
         while self.cur_tkn.text != " ) ":
 
             var_type = self._eat(expected_pattern=TYPE_PATTERN)
             var_name = self._eat_identifier()  # varName
             self.symbol_table.define(var_name, var_type, "ARG")
+            num_params += 1
 
             if self.cur_tkn.text == " , ":
                 _ = self._eat_symbol(",")
+
+        self.subroutine_summary.update(num_params=num_params)
 
 
     @record_parent
@@ -153,6 +198,8 @@ class CompilationEngine():
     def _compile_subroutine_body(self):
         """ Compiles a subroutine's body """
 
+        self.if_counter = 0
+        self.while_counter = 0
         self.current_node = ET.SubElement(self.current_node, 'subroutineBody')
 
         self._eat_symbol("{")
@@ -163,12 +210,20 @@ class CompilationEngine():
         ## Write the signature
         func_name = "{}.{}".format(self.class_name, self.subroutine_name)
         self.vm_writer.write_function(func_name, self.symbol_table.var_count("VAR"))
-        if self.symbol_table.subroutine_is_method():
+
+        if self.subroutine_summary.is_constructor():
+            self.vm_writer.write_push("CONST", self.symbol_table.var_count("FIELD"))
+            self.vm_writer.write_call("Memory.alloc", 1)
+            self.vm_writer.write_pop("POINTER", 0)
+        elif self.subroutine_summary.is_method():
             self.vm_writer.write_push("ARG", 0)
             self.vm_writer.write_pop("POINTER", 0)
 
+
+
         self._compile_statements()
         self._eat_symbol("}")
+        self.if_counter = 0
 
     @record_parent
     @reinstate_parent
@@ -235,21 +290,36 @@ class CompilationEngine():
         self.current_node = ET.SubElement(self.current_node, "letStatement")
 
         self._eat_keyword("let")
-        var_name = self._eat_identifier()  # dx
+        var_name = self._eat_identifier()
+
+        array_assignment = False
 
         if self.cur_tkn.text == ' [ ':
+            array_assignment = True
+
             self._eat_symbol("[")
             self._compile_expression()
+            symbol_kind = self.symbol_table.kind_of(var_name)
+            symbol_index = self.symbol_table.index_of(var_name)
+            self.vm_writer.write_push(symbol_kind, symbol_index)
+            self.vm_writer.write_arithmetic("ADD")
             self._eat_symbol("]")
 
         self._eat_symbol("=")
         self._compile_expression()
+
+        if array_assignment:
+            self.vm_writer.write_pop("TEMP", 0)
+            self.vm_writer.write_pop("POINTER", 1)
+            self.vm_writer.write_push("TEMP", 0)
+            self.vm_writer.write_pop("THAT", 0)
+
         self._eat_symbol(";")
 
-        if self.symbol_table.recognises_symbol(var_name):
+        if self.symbol_table.recognises_symbol(var_name) and not array_assignment:
             kind = self.symbol_table.kind_of(var_name)
             index = self.symbol_table.index_of(var_name)
-            #self.vm_writer.write_pop(kind, index)
+            self.vm_writer.write_pop(kind, index)
 
 
     @record_parent
@@ -257,36 +327,58 @@ class CompilationEngine():
     def _compile_if(self):
         """ Compiles an 'if' statement, possibly with a trailing 'else' clause """
         self.current_node = ET.SubElement(self.current_node, 'ifStatement')
-
+        label_suffix = self.if_counter
+        self.if_counter += 1
         self._eat_keyword("if")
         self._eat_symbol("(")
         self._compile_expression()
         self._eat_symbol(")")
+
+        self.vm_writer.write_if_goto("IF_TRUE{}".format(label_suffix))
+        self.vm_writer.write_goto("IF_FALSE{}".format(label_suffix))
+        self.vm_writer.write_label("IF_TRUE{}".format(label_suffix))
 
         self._eat_symbol("{")
         self._compile_statements()
         self._eat_symbol("}")
 
         if self.cur_tkn.text == ' else ':
+            self.vm_writer.write_goto("IF_END{}".format(label_suffix))
+
+        self.vm_writer.write_label("IF_FALSE{}".format(label_suffix))
+
+        if self.cur_tkn.text == ' else ':
+
             self._eat_keyword("else")
             self._eat_symbol("{")
             self._compile_statements()
             self._eat_symbol("}")
+            self.vm_writer.write_label("IF_END{}".format(label_suffix))
+
 
     @record_parent
     @reinstate_parent
     def _compile_while(self):
         """ Compiles a 'while' statement """
         self.current_node = ET.SubElement(self.current_node, 'whileStatement')
+        label_suffix = self.while_counter
+        self.while_counter += 1
+        self.vm_writer.write_label("WHILE_EXP{}".format(label_suffix))
 
         self._eat_keyword("while")
         self._eat_symbol("(")
         self._compile_expression()
         self._eat_symbol(")")
 
+        self.vm_writer.write_arithmetic("NOT")
+        self.vm_writer.write_if_goto("WHILE_END{}".format(label_suffix))
+
         self._eat_symbol("{")
         self._compile_statements()
         self._eat_symbol("}")
+
+        self.vm_writer.write_goto("WHILE_EXP{}".format(label_suffix))
+        self.vm_writer.write_label("WHILE_END{}".format(label_suffix))
 
     @record_parent
     @reinstate_parent
@@ -324,16 +416,23 @@ class CompilationEngine():
 
         while self.cur_tkn.text in OPERATORS:
             command = self._eat_symbol()
-            print(command)
             self._compile_term()
             if command == "+":
                 self.vm_writer.write_arithmetic("ADD")
+            elif command == "|":
+                self.vm_writer.write_arithmetic("OR")
             elif command == "-":
                 self.vm_writer.write_arithmetic("SUB")
             elif command == "=":
                 self.vm_writer.write_arithmetic("EQ")
+            elif command == ">":
+                self.vm_writer.write_arithmetic("GT")
+            elif command == "<":
+                self.vm_writer.write_arithmetic("LT")
             elif command == "*":
                 self.vm_writer.write_call("Math.multiply", 2)
+            elif command == "&":
+                self.vm_writer.write_arithmetic("AND")
             elif command == "/":
                 self.vm_writer.write_call("Math.divide", 2)
 
@@ -355,12 +454,20 @@ class CompilationEngine():
         tkn_tag = self.cur_tkn.tag
         tkn_txt = self.cur_tkn.text
 
+
         if tkn_tag in ["integerConstant", "keyword", "stringConstant"]:
             # term -> integerConstant | stringConstant | keywordConstant
+
             value = self._eat()
             if tkn_tag == "integerConstant":
                 self.vm_writer.write_push("CONST", value)
-
+            if tkn_tag == "stringConstant":
+                self.vm_writer.write_string(tkn_txt)
+            elif tkn_tag == "keyword" and tkn_txt == " true ":
+                self.vm_writer.write_push("CONST", 0)
+                self.vm_writer.write_arithmetic("NOT")
+            elif tkn_tag == "keyword" and tkn_txt in [" false ", " null "]:
+                self.vm_writer.write_push("CONST", 0)
 
         elif tkn_txt in [" - ", " ~ "]:
             # term -> unaryOp term
@@ -382,24 +489,45 @@ class CompilationEngine():
 
             if tkn_nxt.text == ' [ ':
                 # term -> varName '[' expression ']'
+
+
                 self._eat_symbol("[")
                 self._compile_expression()
+                self.vm_writer.write_push(self.symbol_table.kind_of(var_or_class_name), self.symbol_table.index_of(var_or_class_name))
+                self.vm_writer.write_arithmetic("ADD")
+                self.vm_writer.write_pop("POINTER", 1)
+                self.vm_writer.write_push("THAT", 0)
                 self._eat_symbol("]")
 
             elif tkn_nxt.text == ' ( ' or tkn_nxt.text == ' . ':
-
+                num_args = 0
+                self.calling_method = False
                 if self.cur_tkn.text == " . ":
                     # term -> (className|varName) '.' subroutineName '(' expressionList ')'
+                    #
+                    # let game = SquareGame.new(); -> className
+                    # do game.run();               -> varName (where game is an instance of SquareGame)
+                    tkn_txt = tkn_txt.strip()
+                    # See Note 1.
+                    if self.symbol_table.recognises_symbol(tkn_txt):
+                        symbol_type = self.symbol_table.type_of(tkn_txt)
+                        symbol_index = self.symbol_table.index_of(tkn_txt)
+                        symbol_kind = self.symbol_table.kind_of(tkn_txt)
+                        if symbol_type not in BUILT_IN_TYPES:
+                            var_or_class_name = symbol_type
+                            self.vm_writer.write_push(symbol_kind, symbol_index)
+                            num_args = 1
                     self._eat_symbol(".")
-                    subroutine_name = self._eat_identifier()
+                    subroutine_name = self._eat_identifier() # e.g. 'new' or 'run'
                 else:
                     # term -> subroutineName '(' expressionList ')'
-                    pass
+                    subroutine_name = tkn_txt
 
                 self._eat_symbol("(")
-                num_expressions = self._compile_expressison_list()
+                num_args += self._compile_expressison_list()
                 self._eat_symbol(")")
-                #self.vm_writer.write_call(var_or_class_name + "." + subroutine_name, num_expressions)
+
+                self.vm_writer.write_call(var_or_class_name + "." + subroutine_name, num_args)
                 if not self.compiling_let:
                     self.vm_writer.write_pop("TEMP", 0)
 
@@ -408,7 +536,7 @@ class CompilationEngine():
                 if self.symbol_table.recognises_symbol(var_or_class_name):
                     index = self.symbol_table.index_of(var_or_class_name)
                     kind = self.symbol_table.kind_of(var_or_class_name)
-                    #self.vm_writer.write_push(kind, index)
+                    self.vm_writer.write_push(kind, index)
 
 
     @record_parent
@@ -439,6 +567,7 @@ class CompilationEngine():
         return self._validate_and_insert_current_token("symbol", expected_value).text.strip()
 
     def _eat_identifier(self, expected_value=None):
+
         return self._validate_and_insert_current_token("identifier", expected_value).text.strip()
 
     def _eat_string_constant(self, expected_value=None):
@@ -460,7 +589,7 @@ class CompilationEngine():
         tkn_text = self.cur_tkn.text
         if expected_type is not None:
             assert tkn_type == expected_type, \
-                "unexpected token type; type of current token is '{}', not '{}'".format(tkn_type, expected_type)
+                "unexpected token type; type of current token '{}' is '{}', not '{}'".format(tkn_text, tkn_type, expected_type)
         if expected_value is not None:
             try:
                 assert tkn_text == " " + expected_value + " ", \

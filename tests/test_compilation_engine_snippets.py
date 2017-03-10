@@ -8,7 +8,7 @@ from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
 from jack_analyzer.JackCompiler import JackCompiler
 from jack_analyzer.CompilationEngine import stringify_xml
 
-TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/tests/Tests.xml")
+TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/tests/SyntaxAnalysisTests.xml")
 
 
 class CustomAnalyzerTests(unittest.TestCase):

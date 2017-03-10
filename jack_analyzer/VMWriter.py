@@ -1,7 +1,7 @@
 __author__ = 'paulpatterson'
 
 SEGMENT_NAMES_MAP = {"CONST" : "constant", "ARG" : "argument", "VAR" : "local", "STATIC" : "static", "THIS" : "this",
-                     "THAT": "that", "POINTER" : "pointer", "TEMP" : "temp"}
+                     "THAT": "that", "POINTER" : "pointer", "TEMP" : "temp", "FIELD" : "this"}
 
 
 class VMWriter():
@@ -35,15 +35,15 @@ class VMWriter():
 
     def write_label(self, label):
         """ Writes a vm label command. """
-        pass
+        self.outfile.write("label {}\n".format(label))
 
     def write_goto(self, label):
         """ Writes a vm goto command. """
-        pass
+        self.outfile.write("goto {}\n".format(label))
 
-    def write_if(self, label):
+    def write_if_goto(self, label):
         """ Writes a vm if-goto command. """
-        pass
+        self.outfile.write("if-goto {}\n".format(label))
 
     def write_call(self, name, num_args):
         """ Writes a vm call command. """
@@ -56,6 +56,16 @@ class VMWriter():
     def write_return(self):
         """ Writes a vm return command. """
         self.outfile.write("return\n")
+
+    def write_string(self, string):
+        """ Writes a string constant. """
+        ascii_codes = [ord(character) for character in string[1:-1]]
+        self.write_push("CONST", len(ascii_codes))
+        self.write_call("String.new", 1)
+        for ascii_code in ascii_codes:
+            self.write_push("CONST", ascii_code)
+            self.write_call("String.appendChar", 2)
+
 
     def close(self):
         """Closes the output file. """
