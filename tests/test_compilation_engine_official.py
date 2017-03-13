@@ -3,7 +3,8 @@
 import unittest
 from pathlib import Path
 import xml.etree.ElementTree as ET
-from jack_analyzer.JackAnalyzer import JackAnalyzer
+
+from jack_analyzer.JackCompiler import JackCompiler
 from jack_analyzer.CompilationEngine import stringify_xml
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE, PROJ_10_DIR
 
@@ -13,14 +14,15 @@ ARRAY_TEST_DIRECTORY_PATH = \
 class TestCompilationEngineOfficial(unittest.TestCase):
 
     def _prepare_test(self, jack_file_path):
-        analyzer = JackAnalyzer(path=jack_file_path)
-        actual_xml = analyzer.analyze(return_results=True)[0]
+        compiler = JackCompiler(jack_file_path)
+        compiler.compile()
+
+        actual_xml = compiler.parse_tree
         actual_string = stringify_xml(actual_xml.getroot())
 
         expected_xml_file = jack_file_path.with_name("_" + jack_file_path.stem + ".xml")
         expected_xml = ET.parse(expected_xml_file.as_posix())
         expected_string = stringify_xml(expected_xml.getroot())
-
 
         with open(ACTUAL_COMPARE.as_posix(), 'w') as compOne:
             with open(EXPECTED_COMPARE.as_posix(), 'w') as compareTwo:
@@ -51,15 +53,15 @@ class TestCompilationEngineOfficial(unittest.TestCase):
 
     # ExpressionLessSquare
 
-    def test_square__main(self):
+    def test_expressionless_square__main(self):
         actual, expected = self._prepare_test( Path(PROJ_10_DIR) / "ExpressionLessSquare" / "Main.jack" )
         self.assertMultiLineEqual(actual, expected)
 
-    def test_sqaure__square(self):
+    def test_expressionless_square__square(self):
         actual, expected = self._prepare_test( Path(PROJ_10_DIR) / "ExpressionLessSquare" / "Square.jack" )
         self.assertMultiLineEqual(actual, expected)
 
-    def test_square__square_game(self):
+    def test_expressionless_square__square_game(self):
         actual, expected = self._prepare_test( Path(PROJ_10_DIR) / "ExpressionLessSquare" / "SquareGame.jack" )
         self.assertMultiLineEqual(actual, expected)
 

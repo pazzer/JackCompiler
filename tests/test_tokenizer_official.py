@@ -1,16 +1,21 @@
 __author__ = 'paulpatterson'
 
 import xml.etree.ElementTree as ET
-from pathlib import Path
-import os
 import unittest
 
 from jack_analyzer.Tokenizer import Tokenizer
 from jack_analyzer.CompilationEngine import stringify_xml
 
 from tests.globals import PROJ_10_DIR
+from tests.globals import NAND_2_TETRIS, ACTUAL_COMPARE, EXPECTED_COMPARE
 
 class OfficialTokenizerTests(unittest.TestCase):
+
+    def _write_results_to_compare_files(self, actual_vm, expected_vm):
+        with open(ACTUAL_COMPARE.as_posix(), 'w') as compareOne:
+            with open(EXPECTED_COMPARE.as_posix(), 'w') as compareTwo:
+                compareOne.write(actual_vm)
+                compareTwo.write(expected_vm)
 
     def _prepare_official_tokens_test(self, project, filename):
         jack_file_path = PROJ_10_DIR / project / (filename + ".jack")
@@ -28,10 +33,12 @@ class OfficialTokenizerTests(unittest.TestCase):
 
     def test_square__main(self):
         actual, expected = self._prepare_official_tokens_test(project="Square", filename="Main")
+        self._write_results_to_compare_files(actual, expected)
         self.assertMultiLineEqual(actual, expected)
 
     def test_square__square(self):
         actual, expected = self._prepare_official_tokens_test(project="Square", filename="Square")
+        self._write_results_to_compare_files(actual, expected)
         self.assertMultiLineEqual(actual, expected)
 
     def test_square__square_game(self):
