@@ -31,36 +31,36 @@ class OfficialTokenizerTests(unittest.TestCase):
 
     # Square Project
 
-    # def test_square__main(self):
-    #     actual, expected = self._prepare_official_tokens_test(project="Square", filename="Main")
-    #     self._write_results_to_compare_files(actual, expected)
-    #     self.assertMultiLineEqual(actual, expected)
+    def test_square__main(self):
+        actual, expected = self._prepare_official_tokens_test(project="Square", filename="Main")
+        self._write_results_to_compare_files(actual, expected)
+        self.assertMultiLineEqual(actual, expected)
 
     def test_square__square(self):
         actual, expected = self._prepare_official_tokens_test(project="Square", filename="Square")
         self._write_results_to_compare_files(actual, expected)
         self.assertMultiLineEqual(actual, expected)
 
-    # def test_square__square_game(self):
-    #     actual, expected = self._prepare_official_tokens_test(project="Square", filename="SquareGame")
-    #     self.assertMultiLineEqual(actual, expected)
-    #
-    # # Array Project
-    #
-    # def test_array__main(self):
-    #     actual, expected = self._prepare_official_tokens_test(project="ArrayTest", filename="Main")
-    #     self.assertMultiLineEqual(actual, expected)
-    #
-    # # ExpressionLessSquare Project
-    #
-    # def test_expressionless_square__main(self):
-    #     actual, expected = self._prepare_official_tokens_test(project="ExpressionLessSquare", filename="Main")
-    #     self.assertMultiLineEqual(actual, expected)
-    #
-    # def test_expressionless_square__square(self):
-    #     actual, expected = self._prepare_official_tokens_test(project="ExpressionLessSquare", filename="Square")
-    #     self.assertMultiLineEqual(actual, expected)
-    #
-    # def test_expressionless_square__square_game(self):
-    #     actual, expected = self._prepare_official_tokens_test(project="ExpressionLessSquare", filename="SquareGame")
-    #     self.assertMultiLineEqual(actual, expected)
+    def test_square__square_game(self):
+        actual, expected = self._prepare_official_tokens_test(project="Square", filename="SquareGame")
+        self.assertMultiLineEqual(actual, expected)
+
+    # Array Project
+
+    def test_array__main(self):
+        actual, expected = self._prepare_official_tokens_test(project="ArrayTest", filename="Main")
+        self.assertMultiLineEqual(actual, expected)
+
+    # ExpressionLessSquare Project
+
+    def test_expressionless_square__main(self):
+        actual, expected = self._prepare_official_tokens_test(project="ExpressionLessSquare", filename="Main")
+        self.assertMultiLineEqual(actual, expected)
+
+    def test_expressionless_square__square(self):
+        actual, expected = self._prepare_official_tokens_test(project="ExpressionLessSquare", filename="Square")
+        self.assertMultiLineEqual(actual, expected)
+
+    def test_expressionless_square__square_game(self):
+        actual, expected = self._prepare_official_tokens_test(project="ExpressionLessSquare", filename="SquareGame")
+        self.assertMultiLineEqual(actual, expected)

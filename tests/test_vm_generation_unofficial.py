@@ -75,7 +75,6 @@ class CompilerVMGeneration(TestCase):
             compiler = JackCompiler(path=self.jack_file_path)
             compiler.compile()
         except Exception as e:
-            print(e)
             return None
 
         self._write_parse_tree(compiler.parse_tree)
