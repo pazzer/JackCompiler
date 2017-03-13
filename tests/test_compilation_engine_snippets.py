@@ -1,6 +1,6 @@
 __author__ = 'paulpatterson'
 
-import xml.etree.ElementTree as ET
+from lxml import etree
 import unittest
 from pathlib import Path
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
@@ -14,7 +14,7 @@ TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2T
 class CustomAnalyzerTests(unittest.TestCase):
 
     def setUp(self):
-        self.tests_tree = ET.parse(TESTS_TREE_FILEPATH.as_posix()).getroot()
+        self.tests_tree = etree.parse(TESTS_TREE_FILEPATH.as_posix()).getroot()
         self.snippet_wrapper = self.tests_tree.find("snippet_wrapper").text
         self.xml_wrapper = self.tests_tree.find("expected_xml_wrapper/class")
 
@@ -27,11 +27,8 @@ class CustomAnalyzerTests(unittest.TestCase):
     def _generate_expected_xml(self, test_name):
         test_tree = self.tests_tree.find("*[@id='{}']".format(test_name))
         expected_xml = test_tree.find("expected_xml")
-        offset = 0
-        for each in list(expected_xml):
-            self.xml_wrapper.insert(3 + offset, each)
-            offset += 1
-        return self.xml_wrapper
+        expected_xml[0].tail = ""
+        return expected_xml[0]
 
     def _prepare_test(self, test_name):
         formatted_snippet = self._generate_formatted_snippet(test_name)

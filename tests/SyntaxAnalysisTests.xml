@@ -1,11 +1,11 @@
 <tests>
     <expected_xml_wrapper>
-        <class>
-            <keyword> class </keyword>
-            <identifier> Test </identifier>
-            <symbol> { </symbol>
-            <symbol> } </symbol>
-        </class>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
+<symbol> } </symbol>
+</class>
     </expected_xml_wrapper>
     <snippet_wrapper>
     class Test {{
@@ -21,13 +21,16 @@
             }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> method </keyword>
     <keyword> void </keyword>
     <identifier> draw </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -82,6 +85,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="trivial_do">
@@ -92,13 +97,16 @@
             }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> method </keyword>
     <keyword> void </keyword>
     <identifier> dispose </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -109,8 +117,7 @@
           <symbol> . </symbol>
           <identifier> dispose </identifier>
           <symbol> ( </symbol>
-          <expressionList>
-</expressionList>
+          <expressionList/>
           <symbol> ) </symbol>
           <symbol> ; </symbol>
         </doStatement>
@@ -122,6 +129,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="intermediate_do">
@@ -132,13 +141,16 @@
         }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> method </keyword>
     <keyword> void </keyword>
     <identifier> draw </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -150,31 +162,31 @@
           <identifier> drawRectangle </identifier>
           <symbol> ( </symbol>
           <expressionList>
+            <expression>
+              <term>
+                <identifier> x </identifier>
+              </term>
+            </expression>
+            <symbol> , </symbol>
+            <expression>
+              <term>
+                <symbol> ( </symbol>
                 <expression>
                   <term>
-                    <identifier> x </identifier>
+                    <identifier> y </identifier>
+                  </term>
+                  <symbol> + </symbol>
+                  <term>
+                    <identifier> size </identifier>
                   </term>
                 </expression>
-                <symbol> , </symbol>
-                <expression>
-                  <term>
-                    <symbol> ( </symbol>
-                    <expression>
-                      <term>
-                        <identifier> y </identifier>
-                      </term>
-                      <symbol> + </symbol>
-                      <term>
-                        <identifier> size </identifier>
-                      </term>
-                    </expression>
-                    <symbol> ) </symbol>
-                  </term>
-                  <symbol> - </symbol>
-                  <term>
-                    <integerConstant> 1 </integerConstant>
-                  </term>
-                </expression>
+                <symbol> ) </symbol>
+              </term>
+              <symbol> - </symbol>
+              <term>
+                <integerConstant> 1 </integerConstant>
+              </term>
+            </expression>
           </expressionList>
           <symbol> ) </symbol>
           <symbol> ; </symbol>
@@ -187,6 +199,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="advanced_do">
@@ -197,13 +211,16 @@
         }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> method </keyword>
     <keyword> void </keyword>
     <identifier> draw </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -215,42 +232,15 @@
           <identifier> drawRectangle </identifier>
           <symbol> ( </symbol>
           <expressionList>
-                <expression>
-                  <term>
-                    <identifier> x </identifier>
-                  </term>
-                </expression>
-                <symbol> , </symbol>
-                <expression>
-                  <term>
-                    <symbol> ( </symbol>
-                    <expression>
-                      <term>
-                        <identifier> y </identifier>
-                      </term>
-                      <symbol> + </symbol>
-                      <term>
-                        <identifier> size </identifier>
-                      </term>
-                    </expression>
-                    <symbol> ) </symbol>
-                  </term>
-                  <symbol> - </symbol>
-                  <term>
-                    <integerConstant> 1 </integerConstant>
-                  </term>
-                </expression>
-                <symbol> , </symbol>
-                <expression>
-                  <term>
-                    <identifier> x </identifier>
-                  </term>
-                  <symbol> + </symbol>
-                  <term>
-                    <identifier> size </identifier>
-                  </term>
-                </expression>
-                <symbol> , </symbol>
+            <expression>
+              <term>
+                <identifier> x </identifier>
+              </term>
+            </expression>
+            <symbol> , </symbol>
+            <expression>
+              <term>
+                <symbol> ( </symbol>
                 <expression>
                   <term>
                     <identifier> y </identifier>
@@ -260,6 +250,33 @@
                     <identifier> size </identifier>
                   </term>
                 </expression>
+                <symbol> ) </symbol>
+              </term>
+              <symbol> - </symbol>
+              <term>
+                <integerConstant> 1 </integerConstant>
+              </term>
+            </expression>
+            <symbol> , </symbol>
+            <expression>
+              <term>
+                <identifier> x </identifier>
+              </term>
+              <symbol> + </symbol>
+              <term>
+                <identifier> size </identifier>
+              </term>
+            </expression>
+            <symbol> , </symbol>
+            <expression>
+              <term>
+                <identifier> y </identifier>
+              </term>
+              <symbol> + </symbol>
+              <term>
+                <identifier> size </identifier>
+              </term>
+            </expression>
           </expressionList>
           <symbol> ) </symbol>
           <symbol> ; </symbol>
@@ -272,6 +289,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="non_void_return">
@@ -282,6 +301,10 @@
         }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> constructor </keyword>
     <identifier> Square </identifier>
@@ -305,8 +328,7 @@
           <keyword> do </keyword>
           <identifier> draw </identifier>
           <symbol> ( </symbol>
-          <expressionList>
-</expressionList>
+          <expressionList/>
           <symbol> ) </symbol>
           <symbol> ; </symbol>
         </doStatement>
@@ -323,6 +345,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="comment_handling">
@@ -331,6 +355,10 @@
         field int direction; // Another Comment
         </jack_snippet>
         <expected_xml>
+ <class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <classVarDec>
     <keyword> field </keyword>
     <identifier> Square </identifier>
@@ -343,6 +371,8 @@
     <identifier> direction </identifier>
     <symbol> ; </symbol>
   </classVarDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="while">
@@ -376,13 +406,16 @@
         }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> method </keyword>
     <keyword> void </keyword>
     <identifier> run </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -449,8 +482,7 @@
                       <symbol> . </symbol>
                       <identifier> keyPressed </identifier>
                       <symbol> ( </symbol>
-                      <expressionList>
-</expressionList>
+                      <expressionList/>
                       <symbol> ) </symbol>
                     </term>
                   </expression>
@@ -460,8 +492,7 @@
                   <keyword> do </keyword>
                   <identifier> moveSquare </identifier>
                   <symbol> ( </symbol>
-                  <expressionList>
-</expressionList>
+                  <expressionList/>
                   <symbol> ) </symbol>
                   <symbol> ; </symbol>
                 </doStatement>
@@ -518,8 +549,7 @@
                   <symbol> . </symbol>
                   <identifier> decSize </identifier>
                   <symbol> ( </symbol>
-                  <expressionList>
-</expressionList>
+                  <expressionList/>
                   <symbol> ) </symbol>
                   <symbol> ; </symbol>
                 </doStatement>
@@ -547,8 +577,7 @@
                   <symbol> . </symbol>
                   <identifier> incSize </identifier>
                   <symbol> ( </symbol>
-                  <expressionList>
-</expressionList>
+                  <expressionList/>
                   <symbol> ) </symbol>
                   <symbol> ; </symbol>
                 </doStatement>
@@ -705,8 +734,7 @@
                       <symbol> . </symbol>
                       <identifier> keyPressed </identifier>
                       <symbol> ( </symbol>
-                      <expressionList>
-</expressionList>
+                      <expressionList/>
                       <symbol> ) </symbol>
                     </term>
                   </expression>
@@ -716,8 +744,7 @@
                   <keyword> do </keyword>
                   <identifier> moveSquare </identifier>
                   <symbol> ( </symbol>
-                  <expressionList>
-</expressionList>
+                  <expressionList/>
                   <symbol> ) </symbol>
                   <symbol> ; </symbol>
                 </doStatement>
@@ -735,6 +762,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="class-level variables">
@@ -743,7 +772,11 @@
         field int direction;
         </jack_snippet>
         <expected_xml>
-   <classVarDec>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
+  <classVarDec>
     <keyword> field </keyword>
     <identifier> Square </identifier>
     <identifier> square </identifier>
@@ -756,7 +789,10 @@
     <keyword> int </keyword>
     <identifier> direction </identifier>
     <symbol> ; </symbol>
-  </classVarDec>        </expected_xml>
+  </classVarDec>
+  <symbol> } </symbol>
+</class>
+        </expected_xml>
     </test>
     <test id="if">
         <jack_snippet>
@@ -770,13 +806,16 @@
         }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> method </keyword>
     <keyword> void </keyword>
     <identifier> moveSquare </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -802,8 +841,7 @@
               <symbol> . </symbol>
               <identifier> moveUp </identifier>
               <symbol> ( </symbol>
-              <expressionList>
-</expressionList>
+              <expressionList/>
               <symbol> ) </symbol>
               <symbol> ; </symbol>
             </doStatement>
@@ -831,8 +869,7 @@
               <symbol> . </symbol>
               <identifier> moveDown </identifier>
               <symbol> ( </symbol>
-              <expressionList>
-</expressionList>
+              <expressionList/>
               <symbol> ) </symbol>
               <symbol> ; </symbol>
             </doStatement>
@@ -860,8 +897,7 @@
               <symbol> . </symbol>
               <identifier> moveLeft </identifier>
               <symbol> ( </symbol>
-              <expressionList>
-</expressionList>
+              <expressionList/>
               <symbol> ) </symbol>
               <symbol> ; </symbol>
             </doStatement>
@@ -889,8 +925,7 @@
               <symbol> . </symbol>
               <identifier> moveRight </identifier>
               <symbol> ( </symbol>
-              <expressionList>
-</expressionList>
+              <expressionList/>
               <symbol> ) </symbol>
               <symbol> ; </symbol>
             </doStatement>
@@ -909,7 +944,7 @@
                 <integerConstant> 5 </integerConstant>
               </term>
             </expression>
-</expressionList>
+          </expressionList>
           <symbol> ) </symbol>
           <symbol> ; </symbol>
         </doStatement>
@@ -921,6 +956,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="let">
@@ -932,13 +969,16 @@
         }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> constructor </keyword>
     <identifier> SquareGame </identifier>
     <identifier> new </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -1001,6 +1041,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
     <test id="multiple_functions">
@@ -1016,13 +1058,16 @@
         }
         </jack_snippet>
         <expected_xml>
+<class>
+  <keyword> class </keyword>
+  <identifier> Test </identifier>
+  <symbol> { </symbol>
   <subroutineDec>
     <keyword> constructor </keyword>
     <identifier> SquareGame </identifier>
     <identifier> new </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -1045,8 +1090,7 @@
     <keyword> void </keyword>
     <identifier> dispose </identifier>
     <symbol> ( </symbol>
-    <parameterList>
-</parameterList>
+    <parameterList/>
     <symbol> ) </symbol>
     <subroutineBody>
       <symbol> { </symbol>
@@ -1057,8 +1101,7 @@
           <symbol> . </symbol>
           <identifier> dispose </identifier>
           <symbol> ( </symbol>
-          <expressionList>
-</expressionList>
+          <expressionList/>
           <symbol> ) </symbol>
           <symbol> ; </symbol>
         </doStatement>
@@ -1086,6 +1129,8 @@
       <symbol> } </symbol>
     </subroutineBody>
   </subroutineDec>
+  <symbol> } </symbol>
+</class>
         </expected_xml>
     </test>
 </tests>

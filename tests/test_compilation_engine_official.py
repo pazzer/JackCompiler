@@ -2,8 +2,7 @@
 
 import unittest
 from pathlib import Path
-import xml.etree.ElementTree as ET
-
+from lxml import etree
 from jack_compiler.JackCompiler import JackCompiler
 from jack_compiler.CompilationEngine import stringify_xml
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE, PROJ_10_DIR
@@ -21,7 +20,7 @@ class TestCompilationEngineOfficial(unittest.TestCase):
         actual_string = stringify_xml(actual_xml.getroot())
 
         expected_xml_file = jack_file_path.with_name("_" + jack_file_path.stem + ".xml")
-        expected_xml = ET.parse(expected_xml_file.as_posix())
+        expected_xml = etree.parse(expected_xml_file.as_posix())
         expected_string = stringify_xml(expected_xml.getroot())
 
         with open(ACTUAL_COMPARE.as_posix(), 'w') as compOne:

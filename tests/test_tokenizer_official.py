@@ -1,8 +1,7 @@
 __author__ = 'paulpatterson'
 
-import xml.etree.ElementTree as ET
 import unittest
-
+from lxml import etree
 from jack_compiler.Tokenizer import Tokenizer
 from jack_compiler.CompilationEngine import stringify_xml
 
@@ -24,7 +23,7 @@ class OfficialTokenizerTests(unittest.TestCase):
         actual_string_tokens = stringify_xml(actual_xml_tokens)
 
         xml_tokens_file_path = jack_file_path.with_name(filename + "T" + ".xml")
-        expected_xml_tokens = ET.parse(xml_tokens_file_path.as_posix())
+        expected_xml_tokens = etree.parse(xml_tokens_file_path.as_posix())
         expected_string_tokens = stringify_xml(expected_xml_tokens.getroot())
 
         return actual_string_tokens, expected_string_tokens

@@ -3,7 +3,7 @@ __author__ = 'paulpatterson'
 from collections import namedtuple
 import re
 import xml.etree.ElementTree as ET
-
+from lxml import etree
 SYMBOLS = "{ } ( ) [ ] . , ; + - * / & | < > = ~"
 KEYWORDS = "class constructor function method field static var int char boolean void true false null this let do if \
 else while return"
@@ -43,7 +43,7 @@ class Tokenizer():
         with open(jack_filepath.as_posix(), 'r') as jack_file:
             self._input = jack_file.read()
 
-        self.tokens = ET.Element("tokens")
+        self.tokens = etree.Element("tokens")
         self._pos = 0
 
 
@@ -132,7 +132,7 @@ class Tokenizer():
         """ Gets the next token from the input and makes it the current token. Initially there is no current token. """
         jack_match = self._lookahead()
         if jack_match is not None:
-            token_element = ET.SubElement(self.tokens, jack_match.tag)
+            token_element = etree.SubElement(self.tokens, jack_match.tag)
             token_element.text = " {} ".format(jack_match.text)
             self._pos = jack_match.span.end
             return token_element
