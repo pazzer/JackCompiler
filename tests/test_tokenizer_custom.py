@@ -137,7 +137,7 @@ class CustomTokenizerTests(unittest.TestCase):
         self.assertTrue(\
             xml.text == " ; ", "advance() returned unexpected result: got '', expected ';'".format(xml.text))
 
-    def test_handling_comments(self):
+    def test_inline_comments(self):
         snippet = """
         class Main { // Ignore this...
             field int numerator, denominator; // ... and this!
@@ -162,3 +162,17 @@ class CustomTokenizerTests(unittest.TestCase):
         tokenizer.advance()  # ...eats 'denominator' now at ';'
         tokenizer.advance()  # ...eats ';', IGNORES COMMENT, now at '}'
         self.assertTrue(tokenizer.current_token.text == " } ")
+
+    def test_keyword_conflicts(self):
+        """"""
+        jack_snippet = """
+        class Main {
+            method void do_this() { return 0; }
+        }
+        """
+        expected = [("keyword", " class "), ("identifier", " Main "), ("symbol", " { "), ("keyword", " method "),
+            ("keyword", " void "), ("identifier", " do_this "), ("symbol", " ( "),
+            ("symbol", " ) "), ("symbol", " { "), ("keyword", " return "), ("integerConstant", " 0 "),
+            ("symbol", " ; "), ("symbol", " } "), ("symbol", " } ")]
+        actual = self.tokenize_snippet(jack_snippet)
+        self.assertListEqual(actual, expected, "failed {}".format(jack_snippet))

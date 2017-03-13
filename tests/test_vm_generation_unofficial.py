@@ -4,15 +4,13 @@ from unittest import TestCase
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import shutil
-import logging as log
 from collections import namedtuple
-from functools import wraps
+import tempfile
 
 from jack_analyzer.CompilationEngine import stringify_xml
-
 from jack_analyzer.JackCompiler import JackCompiler
 from tests.globals import NAND_2_TETRIS, ACTUAL_COMPARE, EXPECTED_COMPARE
-import tempfile
+
 
 TestStrings = namedtuple("TestStrings", "actual expected")
 
@@ -57,9 +55,9 @@ class CompilerVMGeneration(TestCase):
             jack_file.write(jack_code)
 
     def _write_results_to_compare_files(self, actual_vm, expected_vm):
-        with open(ACTUAL_COMPARE.as_posix(), 'w') as compOne:
+        with open(ACTUAL_COMPARE.as_posix(), 'w') as compareOne:
             with open(EXPECTED_COMPARE.as_posix(), 'w') as compareTwo:
-                compOne.write(actual_vm)
+                compareOne.write(actual_vm)
                 compareTwo.write(expected_vm)
 
     def _write_parse_tree(self, xml):

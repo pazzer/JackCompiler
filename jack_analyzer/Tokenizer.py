@@ -8,7 +8,7 @@ SYMBOLS = "{ } ( ) [ ] . , ; + - * / & | < > = ~"
 KEYWORDS = "class constructor function method field static var int char boolean void true false null this let do if \
 else while return"
 
-RE_KEYWORD = re.compile("(?:\s*)(?P<keyword>{})".format("|".join(KEYWORDS.split())))
+RE_KEYWORD = re.compile("(?:\s*)(?P<keyword>{})(?![A-Za-z_])".format("|".join(KEYWORDS.split())))
 
 ESCAPED_SYMBOLS= list(map(lambda x: '\\'+x, SYMBOLS.split()))
 RE_SYMBOL = re.compile("(?:\s*)(?P<symbol>{})".format("|".join(ESCAPED_SYMBOLS)))
@@ -19,13 +19,9 @@ RE_IDENTIFIER = re.compile("(?:\s*)(?P<identifier>[a-zA-Z_][a-zA-Z0-9_]*)")
 
 RE_STRING_CONST = re.compile("(?:\s*)(?P<stringConstant>\"[^\"\n]+\")")
 
-RE_COMMENT = re.compile(r"""(?:\s*)/\*\*\n                  # /**
-                            ([ ]\*[^/]*\n)+                 #  * lorem ipsum...
-                            [ ]+\*/                         #  */
+RE_COMMENT = re.compile(r"""(?:\s*)/\*\*.*?\*/
                             |
-                            (?:\s*)/\*\*[^\*]+\*/           # /** lorem ipsum... */
-                            |
-                            (?:\s*)//[^\n]*""", re.VERBOSE) # // lorem ipsum...
+                            (?:\s*)//[^\n]+""", re.VERBOSE | re.DOTALL) # // lorem ipsum...
 
 Span = namedtuple("Span", "start end")
 JackMatch = namedtuple("JackMatch", "tag text span")

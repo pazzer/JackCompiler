@@ -1,8 +1,6 @@
 __author__ = 'paulpatterson'
 
-import sys
 from pathlib import Path
-import os
 import tempfile
 from jack_analyzer.Tokenizer import Tokenizer
 from jack_analyzer.VMWriter import VMWriter
@@ -69,13 +67,4 @@ class JackCompiler():
         if self.parse_tree is None:
             self.compile()
         return self.parse_tree
-
-    def get_generated_vm(self):
-        pass
-
-
-if __name__ == "__main__":
-    path = Path(os.getcwd()) / sys.argv[1]
-    compiler = JackCompiler(path=path)
-    compiler.compile()
 

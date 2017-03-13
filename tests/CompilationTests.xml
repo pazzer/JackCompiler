@@ -949,8 +949,32 @@ return
     </test>
     <test id="ConvertToBin">
         <jack_class>
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/11/ConvertToBin/Main.jack
+
+/**
+ * Unpacks a 16-bit number into its binary representation:
+ * Takes the 16-bit number stored in RAM[8000] and stores its individual
+ * bits in RAM[8001..8016] (each location will contain 0 or 1).
+ * Before the conversion, RAM[8001]..RAM[8016] are initialized to -1.
+ *
+ * The program should be tested as follows:
+ * 1) Load the program into the supplied VM emulator
+ * 2) Put some value in RAM[8000]
+ * 3) Switch to "no animation"
+ * 4) Run the program (give it enough time to run)
+ * 5) Stop the program
+ * 6) Check that RAM[8001]..RAM[8016] contains the correct binary result, and
+ *    that none of these memory locations contains -1.
+ */
 class Main {
 
+    /**
+     * Initializes RAM[8001]..RAM[8016] to -1,
+     * and converts the value in RAM[8000] to binary.
+     */
     function void main() {
 	    var int value;
         do Main.fillMemory(8001, 16, -1);
@@ -959,7 +983,8 @@ class Main {
         return;
     }
 
-
+    /** Converts the given decimal value to binary, and puts
+     *  the resulting bits in RAM[8001]..RAM[8016]. */
     function void convert(int value) {
     	var int mask, position;
     	var boolean loop;
@@ -985,6 +1010,7 @@ class Main {
     	return;
     }
 
+    /** Returns the next mask (the mask that should follow the given mask). */
     function int nextMask(int mask) {
     	if (mask = 0) {
     	    return 1;
@@ -3023,7 +3049,7 @@ class Main {
         let a[4] = 8;
         let a[5] = 4;
         let b[a[3]] = a[3] + 3;
-        let a[b[a[3]]] = a[a[5]] * b[((7 - a[3]) - Main.triple(2)) + 1];
+        let a[b[a[3]]] = a[a[5]] * b[((7 - a[3]) - Main.double(2)) + 1];
         let c[0] = null;
         let c = c[0];
 
@@ -3058,7 +3084,7 @@ class Main {
         return;
     }
 
-    function int triple(int a) {
+    function int double(int a) {
     	return a * 2;
     }
 
@@ -3152,7 +3178,7 @@ pop pointer 1
 push that 0
 sub
 push constant 2
-call Main.triple 1
+call Main.double 1
 sub
 push constant 1
 add
@@ -3745,7 +3771,7 @@ call Output.println 0
 pop temp 0
 push constant 0
 return
-function Main.triple 0
+function Main.double 0
 push argument 0
 push constant 2
 call Math.multiply 2

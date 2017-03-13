@@ -6,7 +6,6 @@ import re
 from functools import wraps
 import sys
 from jack_analyzer.SymbolTable import SymbolTable
-import logging as log
 
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
 
@@ -78,7 +77,6 @@ class CompilationEngine():
         self.current_node = None
         self.class_name = None
         self.subroutine_name = None
-        self.subroutine_is_method = False
 
         self.compiling_let = False
         self.compiling_do = False
@@ -154,11 +152,7 @@ class CompilationEngine():
         self.subroutine_summary.update(kind=self.cur_tkn.text.strip(), class_name=self.class_name)
 
         self.symbol_table.start_subroutine()
-        self.subroutine_is_method = self.cur_tkn.text == " method "
         self.current_node = ET.SubElement(self.current_node, "subroutineDec")
-
-        # if self.cur_tkn.text == " constructor ":
-
 
         if self._eat_keyword() == "method":
             self.symbol_table.define("this", self.class_name, "ARG")
@@ -427,10 +421,10 @@ class CompilationEngine():
                 self.vm_writer.write_arithmetic("GT")
             elif command == "<":
                 self.vm_writer.write_arithmetic("LT")
-            elif command == "*":
-                self.vm_writer.write_call("Math.multiply", 2)
             elif command == "&":
                 self.vm_writer.write_arithmetic("AND")
+            elif command == "*":
+                self.vm_writer.write_call("Math.multiply", 2)
             elif command == "/":
                 self.vm_writer.write_call("Math.divide", 2)
 
@@ -512,11 +506,9 @@ class CompilationEngine():
                         # (a METHOD call)
                         # .jack: do game.run()
                         # .vm:   function PongGame.run 1 // 1 arg (self)
-
                         symbol_type = self.symbol_table.type_of(tkn_txt.strip())
                         symbol_index = self.symbol_table.index_of(tkn_txt.strip())
                         symbol_kind = self.symbol_table.kind_of(tkn_txt.strip())
-                        #if symbol_type not in BUILT_IN_TYPES:
                         self.vm_writer.write_push(symbol_kind, symbol_index)
                         call_name = symbol_type + "." + subroutine_name
                         num_args = 1
@@ -529,13 +521,11 @@ class CompilationEngine():
                         # .vm:   call PongGame.newInstance 0 // (no args)
                         call_name = tkn_txt.strip() + "." + subroutine_name
 
-                     # e.g. 'new' or 'run'
-
                 else:
                     # term -> subroutineName '(' expressionList ')'
                     # (a METHOD call)
                     # .jack: do moveBall()
-                    # .vm    call PongGame.moveBall 1
+                    # .vm:   call PongGame.moveBall 1
                     self.vm_writer.write_push("POINTER", 0)
                     call_name = self.class_name + "." + identifier
                     num_args = 1

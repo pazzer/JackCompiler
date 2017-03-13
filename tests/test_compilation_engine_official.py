@@ -52,15 +52,15 @@ class TestCompilationEngineOfficial(unittest.TestCase):
 
     # ExpressionLessSquare
 
-    def test_square__main(self):
+    def test_expressionless_square__main(self):
         actual, expected = self._prepare_test( Path(PROJ_10_DIR) / "ExpressionLessSquare" / "Main.jack" )
         self.assertMultiLineEqual(actual, expected)
 
-    def test_sqaure__square(self):
+    def test_expressionless_square__square(self):
         actual, expected = self._prepare_test( Path(PROJ_10_DIR) / "ExpressionLessSquare" / "Square.jack" )
         self.assertMultiLineEqual(actual, expected)
 
-    def test_square__square_game(self):
+    def test_expressionless_square__square_game(self):
         actual, expected = self._prepare_test( Path(PROJ_10_DIR) / "ExpressionLessSquare" / "SquareGame.jack" )
         self.assertMultiLineEqual(actual, expected)
 
