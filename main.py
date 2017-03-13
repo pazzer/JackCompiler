@@ -1,7 +1,7 @@
 __author__ = 'paulpatterson'
 
 from pathlib import Path
-from jack_analyzer.JackCompiler import JackCompiler
+from jack_compiler.JackCompiler import JackCompiler
 import sys
 import os
 

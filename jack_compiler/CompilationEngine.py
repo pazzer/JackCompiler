@@ -5,7 +5,7 @@ from xml.dom import minidom
 import re
 from functools import wraps
 import sys
-from jack_analyzer.SymbolTable import SymbolTable
+from jack_compiler.SymbolTable import SymbolTable
 
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
 

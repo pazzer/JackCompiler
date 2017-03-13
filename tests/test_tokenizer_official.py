@@ -3,8 +3,8 @@ __author__ = 'paulpatterson'
 import xml.etree.ElementTree as ET
 import unittest
 
-from jack_analyzer.Tokenizer import Tokenizer
-from jack_analyzer.CompilationEngine import stringify_xml
+from jack_compiler.Tokenizer import Tokenizer
+from jack_compiler.CompilationEngine import stringify_xml
 
 from tests.globals import PROJ_10_DIR
 from tests.globals import NAND_2_TETRIS, ACTUAL_COMPARE, EXPECTED_COMPARE

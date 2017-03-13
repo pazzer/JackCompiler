@@ -5,10 +5,10 @@ import unittest
 from pathlib import Path
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
 
-from jack_analyzer.JackCompiler import JackCompiler
-from jack_analyzer.CompilationEngine import stringify_xml
+from jack_compiler.JackCompiler import JackCompiler
+from jack_compiler.CompilationEngine import stringify_xml
 
-TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackAnalyzer/tests/SyntaxAnalysisTests.xml")
+TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackCompiler/tests/SyntaxAnalysisTests.xml")
 
 
 class CustomAnalyzerTests(unittest.TestCase):

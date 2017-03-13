@@ -4,7 +4,7 @@ import tempfile
 import os
 from pathlib import  Path
 
-from jack_analyzer.Tokenizer import Tokenizer
+from jack_compiler.Tokenizer import Tokenizer
 
 
 class CustomTokenizerTests(unittest.TestCase):

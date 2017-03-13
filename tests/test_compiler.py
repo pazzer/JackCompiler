@@ -1,6 +1,6 @@
 
 import unittest
-from jack_analyzer.JackCompiler import JackCompiler
+from jack_compiler.JackCompiler import JackCompiler
 from pathlib import Path
 
 from tests.globals import PROJ_10_DIR

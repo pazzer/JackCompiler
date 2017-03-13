@@ -7,15 +7,15 @@ import shutil
 from collections import namedtuple
 import tempfile
 
-from jack_analyzer.CompilationEngine import stringify_xml
-from jack_analyzer.JackCompiler import JackCompiler
+from jack_compiler.CompilationEngine import stringify_xml
+from jack_compiler.JackCompiler import JackCompiler
 from tests.globals import NAND_2_TETRIS, ACTUAL_COMPARE, EXPECTED_COMPARE
 
 
 TestStrings = namedtuple("TestStrings", "actual expected")
 
-TESTFILE = NAND_2_TETRIS / "JackAnalyzer" / "tests" / "CompilationTests.xml"
-PARSE_TREE = NAND_2_TETRIS / "JackAnalyzer" / "tests" / "ParseTree.xml"
+TESTFILE = NAND_2_TETRIS / "JackCompiler" / "tests" / "CompilationTests.xml"
+PARSE_TREE = NAND_2_TETRIS / "JackCompiler" / "tests" / "ParseTree.xml"
 
 
 class CompilerVMGeneration(TestCase):

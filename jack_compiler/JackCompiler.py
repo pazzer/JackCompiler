@@ -2,9 +2,9 @@ __author__ = 'paulpatterson'
 
 from pathlib import Path
 import tempfile
-from jack_analyzer.Tokenizer import Tokenizer
-from jack_analyzer.VMWriter import VMWriter
-from jack_analyzer.CompilationEngine import CompilationEngine
+from jack_compiler.Tokenizer import Tokenizer
+from jack_compiler.VMWriter import VMWriter
+from jack_compiler.CompilationEngine import CompilationEngine
 
 
 class JackCompiler():

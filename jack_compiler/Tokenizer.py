@@ -19,7 +19,7 @@ RE_IDENTIFIER = re.compile("(?:\s*)(?P<identifier>[a-zA-Z_][a-zA-Z0-9_]*)")
 
 RE_STRING_CONST = re.compile("(?:\s*)(?P<stringConstant>\"[^\"\n]+\")")
 
-RE_COMMENT = re.compile(r"""(?:\s*)/\*\*.*?\*/
+RE_COMMENT = re.compile(r"""(?:\s*)/\*\*.*?\*/                          # /** lorem ipsum... */
                             |
                             (?:\s*)//[^\n]+""", re.VERBOSE | re.DOTALL) # // lorem ipsum...
 

@@ -59,16 +59,11 @@ class VMWriter():
 
     def write_string(self, string):
         """ Writes a string constant. """
-        ascii_codes = [ord(character) for character in string[1:-1]]
-        self.write_push("CONST", len(ascii_codes))
+        trimmed_string = string[1:-1]
+        self.write_push("CONST", len(trimmed_string))
         self.write_call("String.new", 1)
-        for ascii_code in ascii_codes:
+        for ascii_code in [ord(character) for character in trimmed_string]:
             self.write_push("CONST", ascii_code)
             self.write_call("String.appendChar", 2)
-
-
-    def close(self):
-        """Closes the output file. """
-        pass
 
 
