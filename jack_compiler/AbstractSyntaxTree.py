@@ -1,7 +1,6 @@
 __author__ = 'paulpatterson'
 
 from lxml import etree
-from functools import reduce
 
 class AbstractSyntaxTree():
 
@@ -53,6 +52,16 @@ class AbstractSyntaxTree():
         subroutine_dec = self._get_enclosing_node("subroutineDec")
         return list(subroutine_dec)[0].text.strip()
 
+    @property
+    def subroutine_is_method(self):
+        subroutine_dec = self._get_enclosing_node("subroutineDec")
+        return list(subroutine_dec)[0].text.strip() == "method"
+
+    @property
+    def subroutine_is_constructor(self):
+        subroutine_dec = self._get_enclosing_node("subroutineDec")
+        return list(subroutine_dec)[0].text.strip() == "constructor"
+
     def append(self, tag, text=None):
         if self._tree is None:
             new_node = etree.Element(tag)
@@ -88,5 +97,7 @@ class AbstractSyntaxTree():
         return etree.tostring(self._tree, pretty_print=True).decode("utf-8")
 
 
-
+def stringify_xml(elem):
+    """ Return a pretty-printed XML string for the Element. """
+    return etree.tostring(elem, pretty_print=True).decode("utf-8")
 

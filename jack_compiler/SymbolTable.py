@@ -86,5 +86,9 @@ class SymbolTable():
         else:
             return None
 
+    def info_for_symbol(self, name):
+        if self.recognises_symbol(name):
+            return Symbol(self.type_of(name), self.kind_of(name), self.index_of(name))
+
     def recognises_symbol(self, name):
         return name in self._class_symbols.keys() or name in self._subroutine_symbols.keys()

@@ -3,10 +3,10 @@ __author__ = 'paulpatterson'
 import unittest
 from lxml import etree
 from jack_compiler.Tokenizer import Tokenizer
-from jack_compiler.CompilationEngine import stringify_xml
+from jack_compiler.AbstractSyntaxTree import stringify_xml
 
 from tests.globals import PROJ_10_DIR
-from tests.globals import NAND_2_TETRIS, ACTUAL_COMPARE, EXPECTED_COMPARE
+from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
 
 class OfficialTokenizerTests(unittest.TestCase):
 

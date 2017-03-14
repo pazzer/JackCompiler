@@ -3,12 +3,8 @@ __author__ = 'paulpatterson'
 import re
 from jack_compiler.SymbolTable import SymbolTable
 from jack_compiler.AbstractSyntaxTree import AbstractSyntaxTree
-from lxml import etree
 
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
-
-JACK_ARITHMetreeIC_COMMANDS = [" + ", " - ", " * ", " / ", " & ", " | ", " = ", " > ", " < "]
-BUILT_IN_TYPES = ["int", "char", "boolean"]
 TYPE_PATTERN = r" int | char | boolean | [a-zA-Z_][a-zA-Z0-9_]* "
 
 
@@ -35,8 +31,7 @@ class CompilationEngine():
 
         class: 'class' className '{' classVarDec* subroutineDec* '}'
         """
-        if self.cur_tkn.text != " class ":
-            return
+        assert self.cur_tkn.text == " class ", "unexpected 'class' as first token - got '{}'".format(self.cur_tkn.text)
 
         _ = self.ast.append(tag="class")
 
@@ -121,11 +116,11 @@ class CompilationEngine():
         func_name = "{}.{}".format(self.ast.class_name, self.ast.subroutine_name)
         self.vm_writer.write_function(func_name, self.ast.num_subroutine_locals)
 
-        if self.ast.subroutine_kind == "constructor":
+        if self.ast.subroutine_is_constructor:
             self.vm_writer.write_push("CONST", self.symbol_table.var_count("FIELD"))
             self.vm_writer.write_call("Memory.alloc", 1)
             self.vm_writer.write_pop("POINTER", 0)
-        elif self.ast.subroutine_kind == "method":
+        elif self.ast.subroutine_is_method:
             self.vm_writer.write_push("ARG", 0)
             self.vm_writer.write_pop("POINTER", 0)
 
@@ -192,17 +187,14 @@ class CompilationEngine():
 
         self._eat_keyword("let")
         var_name = self._eat_identifier()
-
         array_assignment = False
 
         if self.cur_tkn.text == ' [ ':
+            symbol = self.symbol_table.info_for_symbol(var_name)
             array_assignment = True
-
             self._eat_symbol("[")
             self._compile_expression()
-            symbol_kind = self.symbol_table.kind_of(var_name)
-            symbol_index = self.symbol_table.index_of(var_name)
-            self.vm_writer.write_push(symbol_kind, symbol_index)
+            self.vm_writer.write_push(symbol.kind, symbol.index)
             self.vm_writer.write_arithmetic("ADD")
             self._eat_symbol("]")
 
@@ -214,13 +206,12 @@ class CompilationEngine():
             self.vm_writer.write_pop("POINTER", 1)
             self.vm_writer.write_push("TEMP", 0)
             self.vm_writer.write_pop("THAT", 0)
+        else:
+            symbol = self.symbol_table.info_for_symbol(var_name)
+            if symbol is not None:
+                self.vm_writer.write_pop(symbol.kind, symbol.index)
 
         self._eat_symbol(";")
-
-        if self.symbol_table.recognises_symbol(var_name) and not array_assignment:
-            kind = self.symbol_table.kind_of(var_name)
-            index = self.symbol_table.index_of(var_name)
-            self.vm_writer.write_pop(kind, index)
 
         self.ast.current_node = let_stmt.getparent()
 
@@ -335,7 +326,8 @@ class CompilationEngine():
                 self.vm_writer.write_arithmetic("AND")
             elif command == "*":
                 self.vm_writer.write_call("Math.multiply", 2)
-            elif command == "/":
+            else:
+                assert command == "/", "unexpected command '{}', expected '/'".format(command)
                 self.vm_writer.write_call("Math.divide", 2)
 
         self.ast.current_node = expression.getparent()
@@ -353,7 +345,6 @@ class CompilationEngine():
 
         if tkn_tag in ["integerConstant", "keyword", "stringConstant"]:
             # term -> integerConstant | stringConstant | keywordConstant
-
             value = self._eat()
             if tkn_tag == "integerConstant":
                 self.vm_writer.write_push("CONST", value)
@@ -408,11 +399,9 @@ class CompilationEngine():
                         # (a METHOD call)
                         # .jack: do game.run()
                         # .vm:   function PongGame.run 1 // 1 arg (self)
-                        symbol_type = self.symbol_table.type_of(tkn_txt.strip())
-                        symbol_index = self.symbol_table.index_of(tkn_txt.strip())
-                        symbol_kind = self.symbol_table.kind_of(tkn_txt.strip())
-                        self.vm_writer.write_push(symbol_kind, symbol_index)
-                        call_name = symbol_type + "." + subroutine_name
+                        symbol = self.symbol_table.info_for_symbol(tkn_txt.strip())
+                        self.vm_writer.write_push(symbol.kind, symbol.index)
+                        call_name = symbol.type + "." + subroutine_name
                         self.calling_method = True
 
                     else:
@@ -444,11 +433,9 @@ class CompilationEngine():
                     self.vm_writer.write_pop("TEMP", 0)
 
             else:
-
-                if self.symbol_table.recognises_symbol(identifier):
-                    index = self.symbol_table.index_of(identifier)
-                    kind = self.symbol_table.kind_of(identifier)
-                    self.vm_writer.write_push(kind, index)
+                symbol_info = self.symbol_table.info_for_symbol(identifier)
+                if symbol_info is not None:
+                    self.vm_writer.write_push(symbol_info.kind, symbol_info.index)
 
         if term is not None:
             self.ast.current_node = term.getparent()
@@ -510,7 +497,3 @@ class CompilationEngine():
 
         self.tknzr.advance()
         return subelement
-
-def stringify_xml(elem):
-    """ Return a pretty-printed XML string for the Element. """
-    return etree.tostring(elem, pretty_print=True).decode("utf-8")

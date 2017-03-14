@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from lxml import etree
 from jack_compiler.JackCompiler import JackCompiler
-from jack_compiler.CompilationEngine import stringify_xml
+from jack_compiler.AbstractSyntaxTree import stringify_xml
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE, PROJ_10_DIR
 
 ARRAY_TEST_DIRECTORY_PATH = \

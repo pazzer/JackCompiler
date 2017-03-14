@@ -6,7 +6,7 @@ from pathlib import Path
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
 
 from jack_compiler.JackCompiler import JackCompiler
-from jack_compiler.CompilationEngine import stringify_xml
+from jack_compiler.AbstractSyntaxTree import stringify_xml
 
 TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackCompiler/tests/SyntaxAnalysisTests.xml")
 

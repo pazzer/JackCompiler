@@ -7,7 +7,7 @@ import shutil
 from collections import namedtuple
 import tempfile
 
-from jack_compiler.CompilationEngine import stringify_xml
+from jack_compiler.AbstractSyntaxTree import stringify_xml
 from jack_compiler.JackCompiler import JackCompiler
 from tests.globals import NAND_2_TETRIS, ACTUAL_COMPARE, EXPECTED_COMPARE
 
