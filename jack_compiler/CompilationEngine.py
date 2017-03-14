@@ -1,11 +1,8 @@
 __author__ = 'paulpatterson'
 
-import xml.etree.ElementTree as etree
-
 import re
-from functools import wraps
-import sys
 from jack_compiler.SymbolTable import SymbolTable
+from jack_compiler.AbstractSyntaxTree import AbstractSyntaxTree
 from lxml import etree
 
 OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
@@ -13,54 +10,6 @@ OPERATORS = [" + ", " - ", " * ", " / ", " & ", " | ", " < ", " > ", " = "]
 JACK_ARITHMetreeIC_COMMANDS = [" + ", " - ", " * ", " / ", " & ", " | ", " = ", " > ", " < "]
 BUILT_IN_TYPES = ["int", "char", "boolean"]
 TYPE_PATTERN = r" int | char | boolean | [a-zA-Z_][a-zA-Z0-9_]* "
-
-
-class SubroutineSummary():
-    def __init__(self):
-        self.class_name = None
-        self.name = None
-        self.num_params = None
-        self.num_locals = None
-        self.kind = None
-
-    def is_method(self):
-        return self.kind == "method"
-
-    def is_constructor(self):
-        return self.kind== "constructor"
-
-    def is_subroutine(self):
-        return self.kind == "subroutine"
-
-    def update(self, class_name=None, name=None, num_params=None, num_locals=None, kind=None):
-        if class_name is not None:
-            self.class_name = class_name
-        if name is not None:
-            self.name = name
-        if num_params is not None:
-            self.num_params = num_params
-        if num_locals is not None:
-            self.num_locals = num_locals
-        if kind is not None:
-            self.kind = kind
-
-def record_parent(func):
-    @wraps(func)
-    def func_wrapper(*args, **kwargs):
-        compilation_engine = args[0]
-        compilation_engine.node_ancestors.append(compilation_engine.current_node)
-        return func(*args, **kwargs)
-    return func_wrapper
-
-
-def reinstate_parent(func):
-    @wraps(func)
-    def func_wrapper(*args, **kwargs):
-        compilation_engine = args[0]
-        retval = func(*args, **kwargs)
-        compilation_engine.current_node = compilation_engine.node_ancestors.pop()
-        return retval
-    return func_wrapper
 
 
 class CompilationEngine():
@@ -71,29 +20,11 @@ class CompilationEngine():
         self.tknzr = tokenizer
         self.vm_writer = vm_writer
         self.symbol_table = SymbolTable()
-        self.node_ancestors = []
-        self.parse_tree = etree.ElementTree(etree.Element("class"))
-
-        self.subroutine_summary = SubroutineSummary()
-        self.current_node = None
-        self.class_name = None
-        self.subroutine_name = None
-
-        self.compiling_let = False
-        self.compiling_do = False
-
-        self.if_counter = None
-        self.while_counter = None
-
+        self.ast = AbstractSyntaxTree()
 
     @property
     def cur_tkn(self):
         return self.tknzr.current_token
-
-    def write_parse_tree(self):
-        root = self.parse_tree.getroot()
-        pretty_xml = stringify_xml(root)
-        sys.stdout.write(pretty_xml)
 
     def compile(self):
         self.tknzr.advance()
@@ -104,15 +35,13 @@ class CompilationEngine():
 
         class: 'class' className '{' classVarDec* subroutineDec* '}'
         """
-
         if self.cur_tkn.text != " class ":
             return
 
-        self.current_node = etree.Element("class")
-        self.parse_tree._setroot(self.current_node)
+        _ = self.ast.append(tag="class")
 
         self._eat_keyword("class")
-        self.class_name = self._eat_identifier()
+        self._eat_identifier()
         self._eat_symbol("{")
 
         while self.cur_tkn.text in [" static ", " field "]:
@@ -123,14 +52,13 @@ class CompilationEngine():
 
         self._eat_symbol("}")
 
-    @record_parent
-    @reinstate_parent
     def _compile_class_var_dec(self):
         """ Compiles a static variable declaration, or a field declaration """
         if self.cur_tkn.text not in [" static ", " field "]:
             return
 
-        self.current_node = etree.SubElement(self.current_node, "classVarDec")
+        class_var_dec = self.ast.append("classVarDec")
+
         field_or_static = self._eat_keyword()
         var_type = self._eat(expected_pattern=TYPE_PATTERN)
         var_name = self._eat_identifier()
@@ -142,60 +70,47 @@ class CompilationEngine():
             self.symbol_table.define(var_name, var_type, field_or_static.upper())
 
         self._eat_symbol(";")
+        self.ast.current_node = class_var_dec.getparent()
 
-    @record_parent
-    @reinstate_parent
     def _compile_subroutine_dec(self):
         """ Compiles a complete method, function, or constructor """
         if self.cur_tkn.text not in [" constructor ", " function ", " method "]:
             return False
 
-        self.subroutine_summary.update(kind=self.cur_tkn.text.strip(), class_name=self.class_name)
-
         self.symbol_table.start_subroutine()
-        self.current_node = etree.SubElement(self.current_node, "subroutineDec")
+        subroutine_dec = self.ast.append(tag="subroutineDec")
 
         if self._eat_keyword() == "method":
-            self.symbol_table.define("this", self.class_name, "ARG")
+            self.symbol_table.define("this", self.ast.class_name, "ARG")
         self._eat()
-        self.subroutine_name = self._eat_identifier()
+        self._eat_identifier()  # subroutine name
 
         self._eat_symbol("(")
-        self._compile_parameter_list() # Only adds to symbol table
+        self._compile_parameter_list()
         self._eat_symbol(")")
-
         self._compile_subroutine_body()
-        self.subroutine_name = None
 
+        self.ast.current_node = subroutine_dec.getparent()
 
-    @record_parent
-    @reinstate_parent
     def _compile_parameter_list(self):
         """ Compiles a (possibly empty) parameter list. Does not handle the enclosing '()' """
-        self.current_node = etree.SubElement(self.current_node, "parameterList")
+        parameter_list = self.ast.append(tag="parameterList")
 
-        num_params = 0
         while self.cur_tkn.text != " ) ":
 
             var_type = self._eat(expected_pattern=TYPE_PATTERN)
-            var_name = self._eat_identifier()  # varName
+            var_name = self._eat_identifier()
             self.symbol_table.define(var_name, var_type, "ARG")
-            num_params += 1
 
             if self.cur_tkn.text == " , ":
                 _ = self._eat_symbol(",")
 
-        self.subroutine_summary.update(num_params=num_params)
+        self.ast.current_node = parameter_list.getparent()
 
-
-    @record_parent
-    @reinstate_parent
     def _compile_subroutine_body(self):
         """ Compiles a subroutine's body """
-
-        self.if_counter = 0
-        self.while_counter = 0
-        self.current_node = etree.SubElement(self.current_node, 'subroutineBody')
+        subroutine_body = self.ast.append("subroutineBody")
+        self.counters = {"if": 0, "while": 0}
 
         self._eat_symbol("{")
 
@@ -203,23 +118,22 @@ class CompilationEngine():
             self._compile_var_dec()
 
         ## Write the signature
-        func_name = "{}.{}".format(self.class_name, self.subroutine_name)
-        self.vm_writer.write_function(func_name, self.symbol_table.var_count("VAR"))
+        func_name = "{}.{}".format(self.ast.class_name, self.ast.subroutine_name)
+        self.vm_writer.write_function(func_name, self.ast.num_subroutine_locals)
 
-        if self.subroutine_summary.is_constructor():
+        if self.ast.subroutine_kind == "constructor":
             self.vm_writer.write_push("CONST", self.symbol_table.var_count("FIELD"))
             self.vm_writer.write_call("Memory.alloc", 1)
             self.vm_writer.write_pop("POINTER", 0)
-        elif self.subroutine_summary.is_method():
+        elif self.ast.subroutine_kind == "method":
             self.vm_writer.write_push("ARG", 0)
             self.vm_writer.write_pop("POINTER", 0)
 
         self._compile_statements()
         self._eat_symbol("}")
-        self.if_counter = 0
 
-    @record_parent
-    @reinstate_parent
+        self.ast.current_node = subroutine_body.getparent()
+
     def _compile_var_dec(self):
         """ Compiles a 'var' declaration
 
@@ -227,7 +141,7 @@ class CompilationEngine():
         if self.cur_tkn.text != " var ":
             return
 
-        self.current_node = etree.SubElement(self.current_node, "varDec")
+        var_dec = self.ast.append(tag="varDec")
 
         self._eat_keyword("var")
         var_type = self._eat(expected_pattern=TYPE_PATTERN)
@@ -236,7 +150,7 @@ class CompilationEngine():
 
             assert self.cur_tkn.tag == "identifier", \
                 "expected keyword or identifier, got ' {} '".format(self.cur_tkn.text)
-            var_name = self._eat_identifier()  # variable name
+            var_name = self._eat_identifier()
             self.symbol_table.define(var_name, var_type, "VAR")
 
             previous_token = self.cur_tkn
@@ -245,8 +159,8 @@ class CompilationEngine():
             if previous_token.text == " ; ":
                 break
 
-    @record_parent
-    @reinstate_parent
+        self.ast.current_node = var_dec.getparent()
+
     def _compile_statements(self):
         """ Compiles a sequence of statements. Does not handle the enclosing '{}'
 
@@ -255,32 +169,26 @@ class CompilationEngine():
 
         Note: There is no compile_statement method
         """
-        self.current_node = etree.SubElement(self.current_node, 'statements')
+        stmts = self.ast.append(tag="statements")
 
         while self.cur_tkn.text in [" do ", " while ", " if ", " let ", " return "]:
             stmt_type = self.cur_tkn.text
             if stmt_type == " do ":
-                self.compiling_do = True
                 self._compile_do()
-                self.compiling_do = False
             elif stmt_type == " while ":
                 self._compile_while()
             elif stmt_type == " if ":
                 self._compile_if()
             elif stmt_type == " let ":
-                self.compiling_let = True
                 self._compile_let()
-                self.compiling_let = False
-            elif stmt_type == " return ":
-                self._compile_return()
             else:
-                break
+                self._compile_return()
 
-    @record_parent
-    @reinstate_parent
+        self.ast.current_node = stmts.getparent()
+
     def _compile_let(self):
         """ Compiles a 'let' statement """
-        self.current_node = etree.SubElement(self.current_node, "letStatement")
+        let_stmt = self.ast.append(tag="letStatement")
 
         self._eat_keyword("let")
         var_name = self._eat_identifier()
@@ -314,14 +222,15 @@ class CompilationEngine():
             index = self.symbol_table.index_of(var_name)
             self.vm_writer.write_pop(kind, index)
 
+        self.ast.current_node = let_stmt.getparent()
 
-    @record_parent
-    @reinstate_parent
     def _compile_if(self):
         """ Compiles an 'if' statement, possibly with a trailing 'else' clause """
-        self.current_node = etree.SubElement(self.current_node, 'ifStatement')
-        label_suffix = self.if_counter
-        self.if_counter += 1
+        if_stmt = self.ast.append(tag="ifStatement")
+
+        label_suffix = self.counters["if"]
+        self.counters["if"] = label_suffix + 1
+
         self._eat_keyword("if")
         self._eat_symbol("(")
         self._compile_expression()
@@ -341,21 +250,21 @@ class CompilationEngine():
         self.vm_writer.write_label("IF_FALSE{}".format(label_suffix))
 
         if self.cur_tkn.text == ' else ':
-
             self._eat_keyword("else")
             self._eat_symbol("{")
             self._compile_statements()
             self._eat_symbol("}")
             self.vm_writer.write_label("IF_END{}".format(label_suffix))
 
+        self.ast.current_node = if_stmt.getparent()
 
-    @record_parent
-    @reinstate_parent
     def _compile_while(self):
         """ Compiles a 'while' statement """
-        self.current_node = etree.SubElement(self.current_node, 'whileStatement')
-        label_suffix = self.while_counter
-        self.while_counter += 1
+        while_stmt = self.ast.append(tag="whileStatement")
+
+        label_suffix = self.counters["while"]
+        self.counters["while"] = label_suffix + 1
+
         self.vm_writer.write_label("WHILE_EXP{}".format(label_suffix))
 
         self._eat_keyword("while")
@@ -373,22 +282,22 @@ class CompilationEngine():
         self.vm_writer.write_goto("WHILE_EXP{}".format(label_suffix))
         self.vm_writer.write_label("WHILE_END{}".format(label_suffix))
 
-    @record_parent
-    @reinstate_parent
+        self.ast.current_node = while_stmt.getparent()
+
     def _compile_do(self):
         """ Compiles a 'do' statement """
-        self.current_node = etree.SubElement(self.current_node, 'doStatement')
 
+        do_stmt = self.ast.append("doStatement")
         self._eat_keyword("do")
         self._compile_term()  # term will 'expand' to 'subroutineCall'
         self._eat_symbol(";")
 
-    @record_parent
-    @reinstate_parent
+        self.ast.current_node = do_stmt.getparent()
+
     def _compile_return(self):
         """ Compiles a 'return' statement """
 
-        self.current_node = etree.SubElement(self.current_node, 'returnStatement')
+        return_stmt = self.ast.append("returnStatement")
         self._eat_keyword("return")
 
         if self.cur_tkn.text != " ; ":
@@ -399,12 +308,12 @@ class CompilationEngine():
         self.vm_writer.write_return()
         self._eat_symbol(";")
 
-    @record_parent
-    @reinstate_parent
+        self.ast.current_node = return_stmt.getparent()
+
     def _compile_expression(self):
         """ Compiles an expression """
 
-        self.current_node = etree.SubElement(self.current_node, 'expression')
+        expression = self.ast.append(tag="expression")
         self._compile_term()
 
         while self.cur_tkn.text in OPERATORS:
@@ -429,24 +338,18 @@ class CompilationEngine():
             elif command == "/":
                 self.vm_writer.write_call("Math.divide", 2)
 
+        self.ast.current_node = expression.getparent()
 
-
-
-
-    @record_parent
-    @reinstate_parent
     def _compile_term(self):
         """ Compiles a term
 
         If the current token is an identifier, the routines must distinguish between a variable, an array entry, or a
         subroutine call. A single lookahead token (which may be one of '[', '(', or '.') suffices to distinguish
         between the possibilities. Any other token is not part of this term and should not be advanced over. """
-        if self.current_node.tag != "doStatement":
-            self.current_node = etree.SubElement(self.current_node, 'term')
+        term = self.ast.append("term") if self.ast.current_node.tag != "doStatement" else None
 
         tkn_tag = self.cur_tkn.tag
         tkn_txt = self.cur_tkn.text
-
 
         if tkn_tag in ["integerConstant", "keyword", "stringConstant"]:
             # term -> integerConstant | stringConstant | keywordConstant
@@ -461,10 +364,9 @@ class CompilationEngine():
                 self.vm_writer.write_arithmetic("NOT")
             elif tkn_txt in [" false ", " null "]:
                 self.vm_writer.write_push("CONST", 0)
-            elif tkn_txt == " this ":
-                self.vm_writer.write_push("POINTER", 0)
             else:
-                pass
+                assert tkn_txt == " this ", "expected ' this ', got {}".format(tkn_txt)
+                self.vm_writer.write_push("POINTER", 0)
 
         elif tkn_txt in [" - ", " ~ "]:
             # term -> unaryOp term
@@ -495,7 +397,6 @@ class CompilationEngine():
                 self._eat_symbol("]")
 
             elif tkn_nxt.text == ' ( ' or tkn_nxt.text == ' . ':
-                num_args = 0
                 self.calling_method = False
                 if self.cur_tkn.text == " . ":
                     self._eat_symbol(".")
@@ -504,7 +405,7 @@ class CompilationEngine():
                     if self.symbol_table.recognises_symbol(tkn_txt.strip()):
                         # term -> varName '.' subroutineName '(' expressionList ')'
                         # tkn_text is a varName
-                        # (a MetreeHOD call)
+                        # (a METHOD call)
                         # .jack: do game.run()
                         # .vm:   function PongGame.run 1 // 1 arg (self)
                         symbol_type = self.symbol_table.type_of(tkn_txt.strip())
@@ -512,7 +413,7 @@ class CompilationEngine():
                         symbol_kind = self.symbol_table.kind_of(tkn_txt.strip())
                         self.vm_writer.write_push(symbol_kind, symbol_index)
                         call_name = symbol_type + "." + subroutine_name
-                        num_args = 1
+                        self.calling_method = True
 
                     else:
                         # term -> className '.' subroutineName '(' expressionList ')'
@@ -524,21 +425,23 @@ class CompilationEngine():
 
                 else:
                     # term -> subroutineName '(' expressionList ')'
-                    # (a MetreeHOD call)
+                    # (a METHOD call)
                     # .jack: do moveBall()
                     # .vm:   call PongGame.moveBall 1
                     self.vm_writer.write_push("POINTER", 0)
-                    call_name = self.class_name + "." + identifier
-                    num_args = 1
+                    call_name = self.ast.class_name + "." + identifier
+                    self.calling_method = True
 
                 self._eat_symbol("(")
-                num_args += self._compile_expressison_list()
+                self._compile_expressison_list()
                 self._eat_symbol(")")
 
+                num_args = len(self.ast.current_node.findall("expressionList/expression"))
+                num_args += 1 if self.calling_method else 0
                 self.vm_writer.write_call(call_name, num_args)
-                if not self.compiling_let:
-                    self.vm_writer.write_pop("TEMP", 0)
 
+                if self.ast.stmt.tag.find("let") == -1:
+                    self.vm_writer.write_pop("TEMP", 0)
 
             else:
 
@@ -547,36 +450,28 @@ class CompilationEngine():
                     kind = self.symbol_table.kind_of(identifier)
                     self.vm_writer.write_push(kind, index)
 
+        if term is not None:
+            self.ast.current_node = term.getparent()
 
-    @record_parent
-    @reinstate_parent
     def _compile_expressison_list(self):
         """ Compiles a (possibly empty) comma-separated list of expressions """
-        expression_list_node = etree.SubElement(self.current_node, 'expressionList')
+        expression_list = self.ast.append("expressionList")
 
-        if self.cur_tkn.text == ' ) ':
-            # expression_list_node.text = "\n"
-            return 0
+        if self.cur_tkn.text != ' ) ':
+            while True:
+                self._compile_expression()
+                if self.cur_tkn.text != ' , ':
+                    break
+                self._eat_symbol(",")
 
-        expressions_counter = 0
-        self.current_node = expression_list_node
-        while True:
+        self.ast.current_node = expression_list.getparent()
 
-            self._compile_expression()
-            expressions_counter += 1
-            if self.cur_tkn.text != ' , ':
-                break
-
-            self._eat_symbol(",")
-
-        return expressions_counter
     # Consuming tokens
 
     def _eat_symbol(self, expected_value=None):
         return self._validate_and_insert_current_token("symbol", expected_value).text.strip()
 
     def _eat_identifier(self, expected_value=None):
-
         return self._validate_and_insert_current_token("identifier", expected_value).text.strip()
 
     def _eat_string_constant(self, expected_value=None):
@@ -611,10 +506,10 @@ class CompilationEngine():
             assert regex.search(tkn_text) is not None, \
                 "expected current token value to match pattern {}; it didn't.".format(expected_pattern)
 
-        sub_element = etree.SubElement(self.current_node, self.cur_tkn.tag)
-        sub_element.text = self.cur_tkn.text
+        subelement = self.ast.append_leaf(tag=self.cur_tkn.tag, text=self.cur_tkn.text)
+
         self.tknzr.advance()
-        return sub_element
+        return subelement
 
 def stringify_xml(elem):
     """ Return a pretty-printed XML string for the Element. """

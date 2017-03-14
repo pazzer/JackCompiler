@@ -55,7 +55,7 @@ class JackCompiler():
 
             compilation_engine = CompilationEngine(tokenizer, vm_writer)
             compilation_engine.compile()
-            self.parse_tree = compilation_engine.parse_tree
+            self.parse_tree = compilation_engine.ast._tree
 
         if self.outfile is not None:
             self.outfile.unlink()
