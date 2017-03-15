@@ -2,15 +2,17 @@ __author__ = 'paulpatterson'
 
 from collections import namedtuple
 import re
-import xml.etree.ElementTree as ET
 from lxml import etree
+
 SYMBOLS = "{ } ( ) [ ] . , ; + - * / & | < > = ~"
+ESCAPED_SYMBOLS= list(map(lambda x: '\\'+x, SYMBOLS.split()))
+
 KEYWORDS = "class constructor function method field static var int char boolean void true false null this let do if \
 else while return"
 
+
 RE_KEYWORD = re.compile("(?:\s*)(?P<keyword>{})(?![A-Za-z_])".format("|".join(KEYWORDS.split())))
 
-ESCAPED_SYMBOLS= list(map(lambda x: '\\'+x, SYMBOLS.split()))
 RE_SYMBOL = re.compile("(?:\s*)(?P<symbol>{})".format("|".join(ESCAPED_SYMBOLS)))
 
 RE_INT_CONST = re.compile("(?:\s*)(?P<integerConstant>[0-9]+)")
@@ -63,6 +65,9 @@ class Tokenizer():
         return self.tokens
 
     def _lookahead(self):
+        """ Looks for next valid token, starting from self._input[self._pos].
+
+        This method differs from advance in that it never alters the value of self._pos, even if a match is found. """
         def unpack_match(token_match):
             span = Span(token_match.span()[0], token_match.span()[1])
             group_names = list(token_match.groupdict().keys())
@@ -139,5 +144,4 @@ class Tokenizer():
 
     def __str__(self):
         """ Outputs the type and value of all tokens processed so far. """
-        Tokenizer()
         return "\n".join(["{}, {}".format(child.tag, child.text) for child in self.tokens])

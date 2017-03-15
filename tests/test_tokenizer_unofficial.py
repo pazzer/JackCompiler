@@ -11,8 +11,8 @@ class CustomTokenizerTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-         posix_string = tempfile.NamedTemporaryFile(delete=False).name
-         cls.temporary_file_path = Path(posix_string)
+        posix_string = tempfile.NamedTemporaryFile(delete=False).name
+        cls.temporary_file_path = Path(posix_string)
 
     @classmethod
     def tearDownClass(cls):

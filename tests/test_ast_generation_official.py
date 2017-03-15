@@ -7,17 +7,16 @@ from jack_compiler.JackCompiler import JackCompiler
 from jack_compiler.AbstractSyntaxTree import stringify_xml
 from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE, PROJ_10_DIR
 
-ARRAY_TEST_DIRECTORY_PATH = \
-    Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/nand2tetris/projects/10/ArrayTest")
+# todo: Add documentation explaining the mechanics of the testing process in this class
+# todo: Add a short docstring to each method
 
-class TestCompilationEngineOfficial(unittest.TestCase):
+class TestASTGenerationOfficial(unittest.TestCase):
 
     def _prepare_test(self, jack_file_path):
         compiler = JackCompiler(jack_file_path)
         compiler.compile()
 
-        actual_xml = compiler.parse_tree
-        actual_string = stringify_xml(actual_xml.getroot())
+        actual_string = str(compiler.abstract_syntax_trees[0])
 
         expected_xml_file = jack_file_path.with_name("_" + jack_file_path.stem + ".xml")
         expected_xml = etree.parse(expected_xml_file.as_posix())

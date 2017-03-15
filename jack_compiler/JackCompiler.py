@@ -9,26 +9,12 @@ from jack_compiler.CompilationEngine import CompilationEngine
 
 class JackCompiler():
 
-    @classmethod
-    def compiler_for_jack_string(cls, jack_string, outfile):
-
-        assert outfile.suffix == ".vm", "{} should have .vm extension".format(outfile.as_posix())
-
-        temporary_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jack")
-        temporary_file_path = Path(temporary_file.name)
-        with open(temporary_file_path.as_posix(), "w+") as jack_file:
-            jack_file.write(jack_string)
-
-        jack_compiler = cls(temporary_file_path)
-        jack_compiler.outfile = outfile
-
-        return jack_compiler
-
-
     def __init__(self, path=None):
+        """ Creates a new JackCompiler instance. If path is set is should point to a jack file, or a directory
+        containing at least one such file. """
         self.jack_file_paths = []
+        self._abstract_syntax_trees = []
         self.outfile = None
-        self.parse_tree = None
         self.using_temporary_file_path = False
 
         assert path.exists(), \
@@ -42,7 +28,23 @@ class JackCompiler():
                 if child.is_file() and child.suffix == ".jack":
                     self.jack_file_paths.append(child)
 
+    @classmethod
+    def compiler_for_jack_string(cls, jack_string, outfile):
+        """ Allows clients to compile a string of valid jack code. The resulting vm is written to outfile. """
+        assert outfile.suffix == ".vm", "{} should have .vm extension".format(outfile.as_posix())
+
+        temporary_file = tempfile.NamedTemporaryFile(delete=False, suffix=".jack")
+        temporary_file_path = Path(temporary_file.name)
+        with open(temporary_file_path.as_posix(), "w+") as jack_file:
+            jack_file.write(jack_string)
+
+        jack_compiler = cls(temporary_file_path)
+        jack_compiler.outfile = outfile
+
+        return jack_compiler
+
     def compile(self):
+        """ Compiles every .jack file contained within jack_file_paths """
         for jack_file in self.jack_file_paths:
             if self.outfile is not None:
                 vm_file_path = self.outfile
@@ -55,16 +57,16 @@ class JackCompiler():
 
             compilation_engine = CompilationEngine(tokenizer, vm_writer)
             compilation_engine.compile()
-            self.parse_tree = compilation_engine.ast._tree
+            self.abstract_syntax_trees.append(compilation_engine.ast)
 
         if self.outfile is not None:
             self.outfile.unlink()
 
-
     # Debugging / testing
 
-    def get_parse_tree(self):
-        if self.parse_tree is None:
-            self.compile()
-        return self.parse_tree
+    @property
+    def abstract_syntax_trees(self):
+        """ List containing an AbstractSyntaxTree instance for every .jack file that was successfully compiled. """
+        return self._abstract_syntax_trees
+
 

@@ -394,9 +394,8 @@ class CompilationEngine():
                     subroutine_name = self._eat_identifier().strip()
 
                     if self.symbol_table.recognises_symbol(tkn_txt.strip()):
-                        # term -> varName '.' subroutineName '(' expressionList ')'
+                        # term -> varName '.' subroutineName '(' expressionList ')'  // a method call
                         # tkn_text is a varName
-                        # (a METHOD call)
                         # .jack: do game.run()
                         # .vm:   function PongGame.run 1 // 1 arg (self)
                         symbol = self.symbol_table.info_for_symbol(tkn_txt.strip())
@@ -405,16 +404,14 @@ class CompilationEngine():
                         self.calling_method = True
 
                     else:
-                        # term -> className '.' subroutineName '(' expressionList ')'
+                        # term -> className '.' subroutineName '(' expressionList ')'  // a subroutine call
                         # tkn_txt is className
-                        # (a SUBROUTINE call)
                         # .jack: PongGame.newInstance()
                         # .vm:   call PongGame.newInstance 0 // (no args)
                         call_name = tkn_txt.strip() + "." + subroutine_name
 
                 else:
-                    # term -> subroutineName '(' expressionList ')'
-                    # (a METHOD call)
+                    # term -> subroutineName '(' expressionList ')'  // a method call
                     # .jack: do moveBall()
                     # .vm:   call PongGame.moveBall 1
                     self.vm_writer.write_push("POINTER", 0)

@@ -16,29 +16,13 @@ Symbol = namedtuple("Symbol", "type kind index")
 class SymbolTable():
 
     def __init__(self):
+        """ Creates a new SymbolTable instance. """
         self._class_symbols = OrderedDict()
         self._subroutine_symbols = OrderedDict()
 
-    def subroutine_is_method(self):
-        return "this" in self._subroutine_symbols.keys()
-
     def start_subroutine(self):
+        """ Empties the symbol table storing subroutine symbols. """
         self._subroutine_symbols.clear()
-
-    def output_subroutine_symbols(self):
-        for k, v in self._subroutine_symbols.items():
-            print("{}: {}, {}, {}".format(k, v.type, v.kind, v.index))
-
-    def output_class_symbols(self):
-        for k, v in self._class_symbols.items():
-            print("{}:{}, {}, {}".format(k, v.type, v.kind, v.index))
-
-    def output_all_symbols(self):
-        print("class-level symbols")
-        self.output_class_symbols()
-        print("subroutine symbols")
-        self.output_subroutine_symbols()
-
 
     def define(self, name, var_type, kind):
         """Defines a new identifier of the given name, type, and kind and assigns it a running index.
@@ -78,7 +62,7 @@ class SymbolTable():
             return None
 
     def index_of(self, name):
-        """Returns the index assigned to the named identifier"""
+        """ Returns the index assigned to the named identifier. """
         if name in self._subroutine_symbols.keys():
             return self._subroutine_symbols[name].index
         elif name in self._class_symbols.keys():
@@ -87,8 +71,22 @@ class SymbolTable():
             return None
 
     def info_for_symbol(self, name):
+        """ Returns the type, kind and index of name if name is found in either scope. """
         if self.recognises_symbol(name):
             return Symbol(self.type_of(name), self.kind_of(name), self.index_of(name))
 
     def recognises_symbol(self, name):
+        """ Returns True if name is found in either scope (class/subroutine), otherwise returns False. """
         return name in self._class_symbols.keys() or name in self._subroutine_symbols.keys()
+
+    def __str__(self):
+        """ Generates a string containing all stored information about all available symbols. """
+        lines = ["class-level symbols"]
+        for k, v in self._class_symbols.items():
+            lines.append("{}:{}, {}, {}".format(k, v.type, v.kind, v.index))
+
+        lines.append("\nsubroutine symbols")
+        for k, v in self._subroutine_symbols.items():
+            lines.append("{}:{}, {}, {}".format(k, v.type, v.kind, v.index))
+
+        return "\n".join(lines)

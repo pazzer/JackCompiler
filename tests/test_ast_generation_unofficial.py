@@ -2,16 +2,17 @@ __author__ = 'paulpatterson'
 
 from lxml import etree
 import unittest
-from pathlib import Path
-from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE
+from tests.globals import ACTUAL_COMPARE, EXPECTED_COMPARE, NAND_2_TETRIS
 
 from jack_compiler.JackCompiler import JackCompiler
 from jack_compiler.AbstractSyntaxTree import stringify_xml
 
-TESTS_TREE_FILEPATH = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/JackCompiler/tests/SyntaxAnalysisTests.xml")
+TESTS_TREE_FILEPATH = NAND_2_TETRIS / "JackCompiler" / "tests" / "SyntaxAnalysisTests.xml"
 
+# todo: Add documentation explaining the mechanics of the testing process in this class
+# todo: Add a short docstring to each method
 
-class CustomAnalyzerTests(unittest.TestCase):
+class TestASTGenerationUnofficial(unittest.TestCase):
 
     def setUp(self):
         self.tests_tree = etree.parse(TESTS_TREE_FILEPATH.as_posix()).getroot()
@@ -34,21 +35,17 @@ class CustomAnalyzerTests(unittest.TestCase):
         formatted_snippet = self._generate_formatted_snippet(test_name)
         expected_xml = self._generate_expected_xml(test_name)
 
-        outfile = Path("/Users/paulpatterson/Documents/MacProgramming/Nand2Tetris/.test_vm.vm")
+        outfile = NAND_2_TETRIS / ".test_vm.vm"
         compiler = JackCompiler.compiler_for_jack_string(formatted_snippet, outfile)
         compiler.compile()
-        parse_tree = compiler.parse_tree
 
-        actual_string = stringify_xml(parse_tree.getroot())
+        actual_string = str(compiler.abstract_syntax_trees[0])
         expected_string = stringify_xml(expected_xml)
 
-        with open(ACTUAL_COMPARE.as_posix(), 'w') as compOne:
+        with open(ACTUAL_COMPARE.as_posix(), 'w') as compareOne:
             with open(EXPECTED_COMPARE.as_posix(), 'w') as compareTwo:
-                compOne.write(actual_string)
+                compareOne.write(actual_string)
                 compareTwo.write(expected_string)
-
-        actual_string = stringify_xml(parse_tree.getroot())
-        expected_string = stringify_xml(expected_xml)
 
         return actual_string, expected_string
 

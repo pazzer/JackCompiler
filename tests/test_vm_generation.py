@@ -60,10 +60,9 @@ class CompilerVMGeneration(TestCase):
                 compareOne.write(actual_vm)
                 compareTwo.write(expected_vm)
 
-    def _write_parse_tree(self, xml):
-        parse_tree = stringify_xml(xml.getroot())
+    def _write_abstract_syntax_tree(self, ast):
         with open(PARSE_TREE.as_posix(), "w") as astfile:
-            astfile.write(parse_tree)
+            astfile.write(str(ast))
 
     def _vm_strings_for_test(self, test_id):
         jack_code, expected_vm = self._get_test_components(test_id)
@@ -78,7 +77,7 @@ class CompilerVMGeneration(TestCase):
             print(e)
             return None
 
-        self._write_parse_tree(compiler.parse_tree)
+        self._write_abstract_syntax_tree(compiler.abstract_syntax_trees[0])
         with open(self.vm_file_path.as_posix()) as vmfile:
             actual_vm = vmfile.read().strip()
             test_strings = TestStrings(actual_vm, expected_vm)
